@@ -275,6 +275,13 @@ copy means no divergence means nothing to reconcile. Tracker-owned fields are ne
 GitHub, so GitHub cannot contradict them either. The two sets are disjoint, and the only overlap is
 one mirrored field in one direction.
 
+🔧 **Decided 2026-10-10: `depends_on` stays tracker-owned, although GitHub now has native
+dependencies.** The premise that GitHub has no dependency relationship turned out to be wrong:
+the GraphQL `Issue` type has `blockedBy` / `blocking` / `issueDependenciesSummary`, with
+`addBlockedBy` / `removeBlockedBy` mutations, and `gh issue edit` has `--add-blocked-by` /
+`--add-blocking` (verified against the API on `gh` 2.102.0). GitHub's field is not read, written
+or reconciled. Revisit if experience shows the native field would serve better.
+
 ### Three operations, not one "sync"
 
 ```

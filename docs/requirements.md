@@ -62,7 +62,7 @@ traded · `COULD` — nice, and no tool gets credit for it over a MUST.
 
 | # | Priority | Requirement | Why |
 |---|---|---|---|
-| **E1** | MUST | **First-class blocks / blocked-by relationships** | GitHub has none at all. Ours is a text field of comma-separated numbers with no validation and no UI |
+| **E1** | MUST | **First-class blocks / blocked-by relationships** | GitHub has none at all. Ours is a text field of comma-separated numbers with no validation and no UI. 🔧 **Corrected 2026-10-10:** GitHub now has native blocked-by / blocking relationships; `depends_on` stays tracker-owned regardless — see the ADR, *Field ownership is disjoint* |
 | **E2** | MUST | **Cycle detection**, or data good enough to detect cycles reliably in a script | A cycle makes the topological sort undefined, and the sort drives both ordering and baseline dates |
 | **E3** | MUST | **Priority that lets newly filed urgent work outrank everything older** | Issue-number ordering sorts a new P0 last, which is backwards |
 | **E4** | SHOULD | Dependencies are *intra-milestone only* by convention; cross-Act sequence comes from milestone order | Recording what milestone order already implies produces a dense, cycle-prone, useless edge list |
@@ -123,7 +123,7 @@ below was verified in this project, not read in a comparison article.
 | **C3** frozen baseline | No concept of one. Built from two date fields and a convention |
 | **C5** derived actuals | No mechanism. `Actual Finish` works only because `closedAt` is readable; `Actual Start` is still unimplemented |
 | **D2** group board by lane | **Cannot group a board by labels at all.** Lanes had to become a single-select field |
-| **E1** dependencies | No dependency relationship exists. Text field, no validation, no UI |
+| **E1** dependencies | No dependency relationship exists. Text field, no validation, no UI. 🔧 **Corrected 2026-10-10:** native blocked-by / blocking exists now (`Issue.blockedBy`, `gh issue edit --add-blocked-by`) |
 | **E3** priority ordering | Projects v2 exposes no readable rank or position, so view order is unusable from a script |
 | **F3** reorder without orphaning | Reordering single-select options **replaces the whole list**; existing option ids must be passed back or values are orphaned |
 | **G3** no new credential | Satisfied only by declining automation. `GITHUB_TOKEN` cannot touch projects, so any Action needs a PAT |

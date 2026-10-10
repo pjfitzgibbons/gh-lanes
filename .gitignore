@@ -22,3 +22,7 @@ CLAUDE.local.md
 .vscode/
 .idea/
 *.swp
+.tmp
+
+# Session handoff notes: local context, not project history.
+HANDOFF.md
