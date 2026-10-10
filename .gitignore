@@ -5,6 +5,8 @@ __pycache__/
 dist/
 build/
 *.egg-info/
+.coverage
+htmlcov/
 
 # Derived tracker state — never committed. The index is rebuildable from item files.
 .tracker/.cache/
