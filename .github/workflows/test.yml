@@ -35,12 +35,15 @@ jobs:
 
       # -v names every test in the log; the annotate-failures plugin pins each
       # failure to its line in the PR diff; md-report writes the job summary.
+      # Options take values with "=": in "--opt VALUE" form pytest reads an
+      # existing path VALUE as a test path, roots itself at the common ancestor
+      # (/home/runner/work) and silently skips pyproject.toml.
       - name: pytest
         run: >
           uv run pytest -v
-          --md-report --md-report-verbose 0
-          --md-report-flavor github --md-report-color never --md-report-zeros empty
-          --md-report-output "$GITHUB_STEP_SUMMARY"
+          --md-report --md-report-verbose=0
+          --md-report-flavor=github --md-report-color=never --md-report-zeros=empty
+          --md-report-output="$GITHUB_STEP_SUMMARY"
 
       - name: coverage summary
         if: ${{ !cancelled() }}
