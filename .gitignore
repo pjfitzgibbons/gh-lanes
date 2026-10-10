@@ -1,0 +1,22 @@
+# Build and env
+__pycache__/
+*.pyc
+.venv/
+dist/
+build/
+*.egg-info/
+
+# Derived tracker state — never committed. The index is rebuildable from item files.
+.tracker/.cache/
+.tracker/out/
+
+# Per-person Claude Code state. Shared config IS committed.
+.claude/settings.local.json
+CLAUDE.local.md
+.claude/logs/
+
+# Editors / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
