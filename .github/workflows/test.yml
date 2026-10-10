@@ -1,0 +1,56 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Read-only token, and no secrets anywhere in this file: requirement G3.
+permissions:
+  contents: read
+
+# A newer push to the same branch makes the older run pointless.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # Actions are pinned to a commit SHA, not a movable tag.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          python-version: "3.14"
+          enable-cache: true
+
+      # --locked fails if uv.lock is stale rather than silently re-resolving.
+      - run: uv sync --locked
+
+      # -v names every test in the log; the annotate-failures plugin pins each
+      # failure to its line in the PR diff; md-report writes the job summary.
+      # Options take values with "=": in "--opt VALUE" form pytest reads an
+      # existing path VALUE as a test path, roots itself at the common ancestor
+      # (/home/runner/work) and silently skips pyproject.toml.
+      - name: pytest
+        run: >
+          uv run pytest -v
+          --md-report --md-report-verbose=0
+          --md-report-flavor=github --md-report-color=never --md-report-zeros=empty
+          --md-report-output="$GITHUB_STEP_SUMMARY"
+
+      - name: coverage summary
+        if: ${{ !cancelled() }}
+        run: |
+          echo "### Coverage" >> "$GITHUB_STEP_SUMMARY"
+          uv run coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY" && exit 0
+          # Under fail_under: say so where the PR's checks list shows it.
+          total=$(uv run coverage report --format=total --fail-under=0) || total="?"
+          echo "::error title=Coverage below threshold::Total coverage ${total}% is under fail_under in pyproject.toml"
+          exit 1
