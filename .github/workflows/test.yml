@@ -17,14 +17,8 @@ concurrency:
 
 jobs:
   pytest:
-    name: pytest (py${{ matrix.python }})
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        # Floor from requires-python, and the newest release.
-        python: ["3.12", "3.13", "3.14"]
     steps:
       # Actions are pinned to a commit SHA, not a movable tag.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -33,7 +27,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
-          python-version: ${{ matrix.python }}
+          python-version: "3.14"
           enable-cache: true
 
       # --locked fails if uv.lock is stale rather than silently re-resolving.
@@ -44,7 +38,6 @@ jobs:
       - name: pytest
         run: >
           uv run pytest -v
-          --cov --cov-report=term
           --md-report --md-report-verbose 0
           --md-report-flavor github --md-report-color never --md-report-zeros empty
           --md-report-output "$GITHUB_STEP_SUMMARY"
@@ -52,5 +45,9 @@ jobs:
       - name: coverage summary
         if: ${{ !cancelled() }}
         run: |
-          echo "### Coverage (py${{ matrix.python }})" >> "$GITHUB_STEP_SUMMARY"
-          uv run coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY"
+          echo "### Coverage" >> "$GITHUB_STEP_SUMMARY"
+          uv run coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY" && exit 0
+          # Under fail_under: say so where the PR's checks list shows it.
+          total=$(uv run coverage report --format=total --fail-under=0) || total="?"
+          echo "::error title=Coverage below threshold::Total coverage ${total}% is under fail_under in pyproject.toml"
+          exit 1

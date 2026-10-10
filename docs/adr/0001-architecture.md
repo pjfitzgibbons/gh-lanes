@@ -14,7 +14,7 @@
 | **Item** | One YAML file, `.tracker/items/<n>.yml`, holding the planning fields for one GitHub issue. Committed. The source of truth |
 | **Index** | `.tracker/.cache/index.db` — SQLite. A join of GitHub facts and item files. Derived, gitignored, rebuildable |
 | **GitHub-owned field** | title, body, state, labels, assignee, comments, sub-issue links, `closedAt`. Read, never stored in an item file |
-| **Tracker-owned field** | estimate, priority, lane, `depends_on`, baseline, milestone. Written to item files, never pushed to GitHub |
+| **Tracker-owned field** | estimate, priority, status, ordinal, lane, `depends_on`, baseline, milestone. Written to item files, never pushed to GitHub |
 | **Lane** | A contention domain. Items in a lane touch the same files, so they run one at a time. Single-valued |
 | **Milestone** | Ours, not GitHub's. An Act or Interlude. Spans all four repos |
 | **Baseline** | A frozen start/finish pair, written once per milestone at its checkpoint, never recomputed |
@@ -46,8 +46,9 @@ repository, and the commit and PR graph.
 
 ### What we own
 
-Estimate · priority · lane · dependencies · baseline start and finish · velocity · milestone
-membership *across repos* · derived actuals · the ready-queue computation · every view.
+Estimate · priority · **status** (GitHub has only open/closed) · **ordinal** · lane · dependencies ·
+baseline start and finish · velocity · milestone membership *across repos* · derived actuals · the
+ready-queue computation · every view.
 
 ## Core decision: git is the database, SQLite is a disposable index
 
@@ -89,7 +90,7 @@ assertions, and a record that an auditor could follow.
 
 | Layer | Choice | Why this and not the obvious alternative |
 |---|---|---|
-| Language | **Python 3.12+** | Already this project's tooling language — the attribution hook, the `wp-publish` skill and the gantt generator are all Python. `uv 0.11.7` is installed. Adding a second toolchain to a docs repo costs more than it returns |
+| Language | **Python 3.14+** (🔧 raised from 3.12 on 2026-10-10: CI tests one version, 3.14, so the floor is what is tested) | Already this project's tooling language — the attribution hook, the `wp-publish` skill and the gantt generator are all Python. `uv 0.11.7` is installed. Adding a second toolchain to a docs repo costs more than it returns |
 | GitHub access | **subprocess to `gh`** | **The decisive choice.** `gh` is already authenticated, so **G3 is satisfied natively with no PAT anywhere.** PyGithub or httpx would each need a token — the exact cost that killed the auto-add Action |
 | Web | **FastAPI + Jinja2 + HTMX** | No build step, no npm, no bundler, server-rendered HTML. HTMX gives drag-and-drop and partial updates with attributes rather than a front-end app. For a single-user local tool, a React SPA is the wrong complexity |
 | Index | **SQLite via stdlib `sqlite3`** | No server, no driver, no ORM needed. It is a cache, so schema migrations are irrelevant — delete and reindex |
@@ -241,6 +242,8 @@ node_id: I_kwDOA1b2c3    # GitHub global id — SURVIVES transfer. The real key
 repo: contoso-health-partners
 estimate: 2              # 1 2 3 5 only — 8/13 rejected at write time
 priority: P0
+status: Todo             # tracker-owned; Done/Icebox cross-checked by validate
+ordinal: 100             # sparse rank — tiebreak within a priority band
 lane: a-enforcement      # single-valued by schema
 depends_on: [1, 21]      # validated: exists, not self, no cycle
 milestone: act-0         # our milestone, which may span repos
@@ -264,7 +267,7 @@ whole design, and it is why "git is the database" does not collapse into a recon
 | Field | Authority | Stored in YAML? | Stored in index? |
 |---|---|---|---|
 | title · body · state · labels · assignee · comments · sub-issue links · `closedAt` | **GitHub** | **No** | yes, as a cache |
-| estimate · priority · lane · `depends_on` · baseline · our milestone | **Files** | yes | yes, as a cache |
+| estimate · priority · **status** · **ordinal** · lane · `depends_on` · baseline · our milestone | **Files** | yes | yes, as a cache |
 | the `[N]` title prefix | GitHub, written by us | no | — |
 
 **The second column is the trick.** GitHub-owned fields are *never copied into a tracker file*. No

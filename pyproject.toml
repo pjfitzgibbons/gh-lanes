@@ -2,7 +2,7 @@
 name = "gh-lanes"
 version = "0.0.0"
 description = "A planning layer over GitHub Issues: estimates, lanes, dependencies and baselines."
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = []
 
 [build-system]
@@ -16,7 +16,7 @@ module-name = "ghlanes"
 # The hook's suite is plain unittest; pytest collects it so one command runs everything.
 testpaths = ["tests", ".claude/hooks"]
 # -ra: end-of-run summary naming every skip, xfail and failure, so nothing passes silently.
-addopts = ["-ra", "--strict-markers", "--strict-config"]
+addopts = ["-ra", "--strict-markers", "--strict-config", "--cov", "--cov-report=term"]
 xfail_strict = true
 
 [tool.coverage.run]
@@ -24,6 +24,8 @@ source = ["ghlanes"]
 branch = true
 
 [tool.coverage.report]
+# Below this, pytest exits non-zero: the CI check goes red, locally too.
+fail_under = 90
 show_missing = true
 skip_covered = false
 
