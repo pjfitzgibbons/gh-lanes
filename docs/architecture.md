@@ -1,12 +1,12 @@
 # ADR 0001: Architecture for a bespoke GitHub-integrated tracker
 
-**Status:** proposed · **Inputs:** [`requirements.md`](../requirements.md) ·
-[`alternatives-survey.md`](../alternatives-survey.md)
+**Status:** proposed · **Inputs:** [`requirements.md`](requirements.md) ·
+[`alternatives-survey.md`](alternatives-survey.md)
 
 ## Definitions
 
 The tool is `gh-lanes` (product: GH Lanes, CLI: `lanes`), in its own repo. Its *data* lives in
-`ms-security-docs/.tracker/`. See [design 0001](../design/0001-phase-1.md).
+`.tracker/` in whichever repo is being planned. See [design 0001](design/0001-phase-1.md).
 
 | Term | Definition |
 |---|---|
@@ -116,146 +116,16 @@ optional, not as the run path.
 One core library; the CLI and the web UI are two front ends over it. Neither shells out to the
 other.
 
-### The rule: reads are implicit, writes are deliberate
-
-**`pull` is automatic. `reconcile` is not.** The split follows from whether an operation can make
-a wrong decision:
-
-- **Pull is read-only, idempotent and decision-free.** Requiring a human to remember it only
-  produces stale data, so it runs automatically whenever the index is older than
-  `config.stale_after_minutes` (default 15 min). `lanes pull` exists for scripting and debugging.
-- **Reconcile creates files and reports orphans.** It has consequences and sometimes needs a
-  judgement, so it is explicit and **dry by default**.
-
-That is the same principle the current gantt tooling already uses: `extract.py` reads freely and
-`freeze.py` is the lone writer, kept separate so a read path can never mutate a record.
-
-### Commands
-
-**Query: always safe, auto-refresh the index**
-
-| Command | Does |
-|---|---|
-| `lanes status` | Counts, `needs-triage` list, index age |
-| `lanes list [--lane a-enforcement] [--milestone act-0] [--ready]` | Filtered items |
-| `lanes show 23` | One item: GitHub facts joined with ours |
-| `lanes next [--lane L]` | One answer: the single task to start now. The acceptance criterion for Phase 1 |
-| `lanes ready` | One per lane: the parallel view, for concurrent sessions |
-| `lanes why 23` | Why this item is not startable: blocked by, behind a lane head, iced, or unestimated |
-| `lanes board` | Terminal lane board, ASCII columns |
-| `lanes validate` | The lint. Non-zero exit. Runs in the pre-commit hook and before `freeze` |
-
-**Write what the user named: immediate**
-
-| Command | Does |
-|---|---|
-| `lanes new "title" [--estimate N] [--lane L] [--milestone M] [--draft]` | `gh issue create`, then the file |
-| `lanes set 23 --estimate 3 --lane a-enforcement --priority P0 --depends-on 1,21` | Validates, then writes. Rejects 8/13, self-refs and cycles at write time |
-| `lanes ice 23` / `lanes schedule 23 --milestone act-0` | Clear or set the milestone |
-
-**Write what the tool decided: dry by default, `--apply` to commit**
-
-| Command | Does |
-|---|---|
-| `lanes reconcile [--apply]` | Creates files for untracked issues; reports orphans and drafts |
-| `lanes freeze act-0 [--apply] [--rebaseline]` | Computes and freezes baselines |
-| `lanes mirror [--apply]` | The one write-back: `[N]` into issue titles |
-| `lanes push-drafts [--apply]` | Turns drafts into real issues, renames files |
-
-**Maintenance**
-
-| Command | Does |
-|---|---|
-| `lanes pull [--repo R] [--fresh]` | Explicit index refresh |
-| `lanes reindex` | Rebuild SQLite from the committed files. Always safe, because the index is derived |
-| `lanes serve [--port 7420]` | The local web UI, bound to localhost |
-| `lanes render` | HTML lane board and timeline into `.tracker/out/` (gitignored) |
-
-**Global flags:** `--offline` (never call `gh`; serve stale index with a warning), `--json` (machine
-output on every query command), `--repo` (scope to one of the four).
-
-🏛 **Why `new` and `set` are immediate while `freeze` and `reconcile` are not:** the first pair write
-a value the user just typed, so a confirmation prompt would only add a keystroke to a decision
-already made. The second pair write values *the tool derived* across many items, where a dry run is
-the only chance to catch a wrong inference before it is committed. The dividing line is **who chose
-the value**, not how many rows change.
-
-### `lanes next`: the Phase 1 acceptance criterion
-
-Phase 1 ships no HTML and no server, so the terminal has to answer *what do I do now* well enough to
-work from. That is one command with one answer:
-
-```
-$ lanes next
-#1  [3] Attribution hook has five bypasses          lane A enforcement   P2
-    ready · 5d at 5 pts/week · unblocks #20
-
-$ lanes next --lane e-writing
-#19 [5] Post: multi-repo harness configuration      lane E writing       P2
-    ready · 7d · head of lane (3 behind it)
-```
-
-Selection order, which is the whole algorithm:
-
-1. drop anything `Done`, `Icebox`, or `needs-triage`
-2. drop anything with an unmet `depends_on`
-3. drop anything that is not its lane's head
-4. sort by `priority`, then `ordinal`, then issue number
-5. print the first
-
-`lanes ready` prints step 3's survivors, one per lane, which is the concurrency answer:
-
-```
-$ lanes ready
-LANE               TAKE  EST  BLOCKED BY
-a-enforcement      #1    3    —
-b-wp-publish       #7    2    —
-c-workspace-docs   #4    1    —
-d-agents           #9    3    —
-e-writing          #19   5    —
-f-mcp-config       #17   2    —
-g-standalone       #23   2    —
-z-sweep            #6    3    #1 #2 #3 #14 #16 #17
-```
-
-`lanes why` explains a negative, which is the part a chart conveys badly anyway:
-
-```
-$ lanes why 20
-#20 not startable
-  · depends on #1 (open), #21 (open)
-  · behind lane head #19 in lane E writing
-```
-
-All three take `--json`, so an agent can consume them without parsing columns.
-
-🔑 **If `lanes next` is not useful enough to work from, Phase 1 has failed** and the HTML views are
-not optional after all.
+Reads are implicit and writes are deliberate: pull runs automatically, while reconcile, freeze,
+mirror and push-drafts are dry by default. The rule and the command set are in
+[design 0001, *Reads and writes*](design/0001-phase-1.md#reads-and-writes) and
+[*Commands*](design/0001-phase-1.md#commands). Phase 1's acceptance criterion is that `lanes next`
+is good enough to work from ([design 0001, *Scope*](design/0001-phase-1.md#scope)).
 
 ## Data model
 
-```yaml
-# .tracker/items/23.yml
-issue: 23                # human join key — CHANGES on repo transfer
-node_id: I_kwDOA1b2c3    # GitHub global id — SURVIVES transfer. The real key
-# draft: true            # set only before the GitHub issue exists (offline create)
-repo: contoso-health-partners
-estimate: 2              # 1 2 3 5 only — 8/13 rejected at write time
-priority: P0
-status: Todo             # tracker-owned; Done/Icebox cross-checked by validate
-ordinal: 100             # sparse rank — tiebreak within a priority band
-lane: a-enforcement      # single-valued by schema
-depends_on: [1, 21]      # validated: exists, not self, no cycle
-milestone: act-0         # our milestone, which may span repos
-baseline:
-  start: 2026-10-13      # written once by `lanes freeze act-0`
-  finish: 2026-10-15
-  frozen_at: 2026-10-10T16:00:00Z
-  reason: "Act 0 checkpoint"
-```
-
-Deliberately absent: title, body, labels, assignee. Those are GitHub's, read through `gh`
-and cached in the index, not duplicated in a file we would then have to reconcile.
+An item file holds identity and tracker-owned fields only. The schema and an example are in
+[design 0001, *Data model*](design/0001-phase-1.md#data-model).
 
 ## The GitHub boundary: how sync works
 
@@ -303,10 +173,13 @@ one `gh api graphql` for sub-issue links. Writes only to the index, never to YAM
 `fetched_at`; commands warn when the cache is stale and `--offline` works entirely from it, since
 every tracker-owned field is local.
 
-**2. Reconcile: the only operation that creates or flags files.** This is today's lint, promoted
-to a first-class step. It answers two questions and *reports* rather than guessing:
+**2. Reconcile: the only operation that creates item files or changes them to match GitHub.** This
+is today's lint, promoted to a first-class step. Where a case needs a judgement, it *reports* rather
+than guessing:
 
 - an open issue with no item file → offer to create one (that is `H5`, automatic membership)
+- a closed issue whose item is not `Done` → set `status: Done`
+- a reopened issue whose item is still `Done` → report it; the earlier status is not recorded
 - an item file whose `node_id` resolves to nothing → orphan, report it
 
 **3. Mirror: the single write-back.** When `estimate` changes, rewrite the title's `[N]` prefix.
@@ -343,22 +216,10 @@ mapping one onto an Act is a judgement call.
 The complication: **we cannot allocate an issue number.** That is GitHub's to assign. So there are
 two sub-paths and the default matters.
 
-**Default: online, GitHub first**
-
-```
-lanes new "Attribution hook has five bypasses" --estimate 3 --lane a-enforcement --milestone act-0
-  1. gh issue create --repo … --title "[3] …"     → returns #24 and node_id
-  2. write .tracker/items/24.yml with identity + planning fields
-  3. one commit
-```
-
-**Offline: `--draft`**
-
-```
-lanes new "…" --draft    → .tracker/items/draft-01JA7Z…yml
-                             issue: null   node_id: null   draft: true
-lanes push-drafts        → creates the GitHub issues, renames the files to items/25.yml
-```
+By default `lanes new` works online: it creates the GitHub issue, then writes the item file, then
+commits. Offline, `lanes new --draft` writes a draft file with no issue, and `lanes push-drafts`
+later creates the issue and renames the file. Both command sequences are in
+[design 0001, *Commands*](design/0001-phase-1.md#commands).
 
 The rename is visible in git history, so a draft's provenance survives. `draft: true` is explicit
 rather than inferred from a null `issue:`, because reconcile must distinguish **a draft (expected to
@@ -367,7 +228,7 @@ flag and mean opposite things.
 
 #### The ordering rule: GitHub first, then the file
 
-Step 1 calls `gh`, step 2 writes the file, and that order is deliberate. Compare the two ways a
+`lanes new` calls `gh` first and writes the file second, and that order is deliberate. Compare the two ways a
 crash between them can land:
 
 | Crash leaves | Who notices | Cost |
@@ -393,7 +254,7 @@ Checked against `A4`, `A5`, `A6`. GitHub behaviour as of 2026-10-10.
 | `A4` appear in every view | ✅ | **`Auto-add sub-issues to project` is already enabled**, so children join without ceremony |
 | `A5` parent roll-up without double-count | ✅ | `subIssuesSummary{total completed percentCompleted}` from GitHub, plus our rule that a parent with children carries no estimate. Sum is computed in the index |
 | `A6` arbitrary depth | ✅ | 8 levels, against the two we use |
-| Per-parent capacity | ✅ | 100 children. A 13-point item splitting into more than 100 is not a splitting problem |
+| Per-parent capacity | ✅ | 100 children, far more than splitting an item produces |
 | Cross-repo parent/child | ✅ | Documented, and `gh` accepts a URL as well as a number for `--parent` and `--add-sub-issue`. ⚠️ Docs-verified, not hands-tested; only one repo exists today. Confirm during Act 1 |
 
 **So no tracker-side parent field.** Parentage joins the GitHub-owned column alongside title, state
@@ -401,17 +262,18 @@ and labels: read via `Issue.parent`, cached in the index, never written to an it
 tracker-side rule is the one `A5` needs, *a parent with children must have an empty estimate*,
 which `validate` enforces.
 
+`gh` wraps sub-issue writes fully on 2.102.0, so they need no raw GraphQL:
+`gh issue create --parent` and `gh issue edit --add-sub-issue|--parent|--remove-parent`. Reads come
+from one query over `Issue.parent` / `subIssues` / `subIssuesSummary`.
+
 The cross-repo answer is the one that mattered. Had sub-issues been same-repo only, the Act 1
 migration would have broken every split parent whose children moved to an app repo, and parentage
 would have had to live in our files after all.
 
 ### The join key, and why `issue:` alone is wrong
 
-An issue *number* is not stable: `gh issue transfer` changes it,
-and the Act 1 migration moves app issues into three new repos, so this is scheduled, not
-hypothetical. The schema therefore carries **`node_id`** (GitHub's global id, stable across
-transfer) as the real key, with `issue:` kept as the human-readable one and treated as a cache.
-Reconcile repairs a stale `issue:` from `node_id` rather than reporting a false orphan.
+`gh issue transfer` changes an issue's number, so `node_id` is the real key and `issue:` is a cache.
+The details are in [design 0001, *Identity*](design/0001-phase-1.md#identity).
 
 ### Failure cases, and what happens
 
@@ -419,18 +281,12 @@ Reconcile repairs a stale `issue:` from `node_id` rather than reporting a false 
 |---|---|---|
 | Issue transferred to another repo | `issue:` goes stale, `node_id` still resolves | Reconcile rewrites `issue:` and `repo:`. No data lost |
 | Issue deleted | `node_id` resolves to nothing | Orphan report; file kept until a human decides |
-| Issue reopened | `closedAt` clears | Derived `actual_finish` is computed, never cached in YAML, so it just changes |
+| Issue reopened | `closedAt` clears | Derived `actual_finish` is computed, never cached in YAML, so it just changes. Reconcile reports the item if it is still `Done` |
 | Title edited on GitHub | `[N]` prefix may be dropped | Mirror drift detected, re-applied on next run |
 | Estimate edited in the file | GitHub title now stale | Mirror re-applies |
 | Offline | Pull fails | Everything tracker-owned still works; index serves stale reads with a warning |
 | Two sessions edit **different** items | Two different files | Git merges cleanly. This is why it is one file per item, not one big YAML |
 | Two sessions edit the **same** item | Normal git conflict | A ten-line YAML conflict a human can read, unlike a database merge |
-
-### What this costs in estimate terms
-
-The 13-point sync engine in the plan below is **mostly reconcile and transfer handling**, not field
-synchronisation, because field synchronisation does not exist. If two-way field sync were in scope
-the number would be much larger and the risk open-ended, which is exactly why it is not.
 
 ## Rendering: generated HTML, not Mermaid
 
@@ -470,121 +326,6 @@ as **source**. So:
   published page, not a repo file.
 
 That is a real loss; the gain is a chart that shows dependencies at all.
-
-### Consequence for phasing
-
-HTML rendering sits in **Phase 2**, not Phase 1. Phase 1 answers *what next* in the terminal
-instead; see `lanes next`. The templates and the server land together in Phase 2, since serving an
-existing template is nearly free once it exists.
-
-## Requirements coverage and estimates
-
-Fibonacci, `>5 must split` applies to this plan too.
-
-| # | Requirement | How | sp |
-|---|---|---|---|
-| **A1** | One tracker, 4 repos | `repo:` per item; `gh` queries each | 2 |
-| **A2** | Milestones span repos | Our milestone entity; GitHub's is unused | 2 |
-| **A3** | Milestone exit criterion | `exit_criterion:` field, rendered on the board | 1 |
-| **A4** | Sub-tasks schedulable | Read GitHub sub-issues; children get their own files | 3 |
-| **A5** | Parent roll-up, no double-count | Parent estimate must be empty; computed sum | 2 |
-| **B1** | Fibonacci estimate | field + enum | 1 |
-| **B2** | Visible in lists | our UI; mirror to title `[3]` | 2 |
-| **B3** | >5 split enforced | **write-time rejection** | 2 |
-| **C1** | Velocity per week | `config.pointsPerWeek` | 1 |
-| **C2** | Duration from estimate | existing formula | 1 |
-| **C3** | Frozen baseline | committed values + `frozen_at` | 3 |
-| **C4** | Re-baseline recorded | `reason:` + the git commit | 1 |
-| **C5** | **Derived actuals** | **see hard items** | 8 → split |
-| **D1 D4** | Lane, single-valued | field + enum | 1 |
-| **D2** | Board groups by lane | **see hard items** | 8 → split |
-| **D3** | Ready queue | `isReady` computed in the index | 3 |
-| **E1** | Dependencies | `depends_on` list | 2 |
-| **E2** | Cycle detection | DFS at write time, reject | 2 |
-| **E3** | Priority outranks age | enum + sort | 1 |
-| **F1** | Icebox | absent milestone ⟺ iced | 1 |
-| **F2** | States orderable | `config.statuses` ordered | 1 |
-| **F4** | Taxonomy | GitHub labels, unchanged | 0 |
-| **G1 G2 G5** | Evidence, export, history | free: it is committed YAML in git | 0 |
-| **G3** | No credential | free: `gh` is already authenticated | 0 |
-| **G4** | Low ops | free: no database to operate | 0 |
-| **H1** | CLI | Typer | 2 |
-| **H2** | Bulk writes | free: file writes | 0 |
-| **H3 H4** | Fields readable, on the item | free: YAML | 0 |
-| **H5** | Automatic membership | reconcile creates missing files | 2 |
-| **H6** | Validation hooks | pre-commit hook runs `lanes validate` | 2 |
-| **C7** | Gantt + lane board | **HTML templates: CSS Grid + SVG arrows** | 8 → split |
-| — | **GitHub sync engine** | **see hard items** | 13 → split |
-| — | Index + reindex | SQLite schema, rebuild | 3 |
-| — | Web shell, auth-free, localhost | FastAPI + Jinja + HTMX | 3 |
-
-**Total ≈ 70 points before splitting the three hard items — about 14 weeks at 5/week.** Phase 1 alone is 32.
-
-**Eight requirements cost zero** because they fall out of the storage choice, and
-they include the three that no surveyed tool satisfied (`G1`, `G5`, `H2`) plus the one that
-disqualified several (`G3`).
-
-## The hard MUSTs
-
-### 🔴 GitHub sync engine — 13, must split
-
-The only genuinely difficult piece. Reconciling two systems that both think they know an issue's
-state. Split:
-
-1. **Pull + index** (3) — `gh` → SQLite, read-only
-2. **Orphan reconcile** (3) — file with no issue, issue with no file, draft vs orphan, report and offer to fix. **Build this first** — it makes every creation path tolerable
-3. **Title mirror for `[N]`** (2) — the one write-back, with drift detection
-4. **Transfer and deletion handling** (3) — what `issue: 23` means when 23 moves to another repo.
-   Act 1 makes this real, not hypothetical
-5. **Reopen handling** (2) — recompute derived actuals rather than caching them
-
-### 🔴 Derived actuals (`C5`) — 8, must split
-
-`actual_finish` is easy: `closedAt` from `gh`. `actual_start` is the hard half: first commit on
-the issue's branch, across four repos.
-
-1. **`actual_finish` from `closedAt`** (1)
-2. **Branch discovery** (3) — `git for-each-ref` over four repos, matching `<kind>/<issue>-<slug>`,
-   local *and* remote, with the ambiguity rules written down
-3. **First-commit timestamp** (2) — `git log --reverse` against the merge-base
-4. **Missing-branch reporting** (2) — a missing actual bar is a branch-naming defect and must be
-   reported as one, not silently blank
-
-### 🔴 Board UI with lane grouping (`D2`) — 8, must split
-
-Where the UI effort concentrates.
-
-1. **Read-only lane board** (3) — HTML table, lanes as rows, statuses as columns. **Useful on its
-   own, and it is the view GitHub cannot produce at all**
-2. **Drag to change status** (3) — HTMX swap + optimistic update
-3. **Drag to reorder / change lane** (2)
-
-### Not hard, but easy to get wrong
-
-**`A4` sub-issues** (2) — `gh` wraps sub-issues fully on 2.102.0, so no raw GraphQL is needed for
-writes: `gh issue create --parent`,
-`gh issue edit --add-sub-issue|--parent|--remove-parent`. Reads come from one query over
-`Issue.parent` / `subIssues` / `subIssuesSummary`.
-
-**Parentage is a GitHub-owned field.** It is *not* stored in item files, for the same reason labels
-are not: GitHub already holds it, so a copy could only diverge. See *Sub-issues* above.
-
-## Phasing: each phase independently useful
-
-| Phase | Contents | sp | Standing value if we stop here |
-|---|---|---|---|
-| **1: CLI only, terminal views** | schema, validation, cycle detection, pull, reconcile, title mirror, index, **`next` / `ready` / `why` / `board`**, plus repo setup, tests and migrating the live items | **32** | **Already beats today**: real dependencies, cycle detection, server-side split rule, baselines, evidence in git, no rate limits, and a usable *what-next* answer |
-| **2: HTML views** | Jinja templates, CSS Grid board and timeline, SVG dependency arrows, `lanes render` → `.tracker/out/`, then FastAPI serving the same templates | ~18 | The board and the arrows nothing we have can draw |
-| **3: write UI + sync** | drag, transfer handling | ~26 | Full replacement |
-
-**Phase 1 returns to ~20 points — four weeks — on one condition:** the terminal must answer
-*what next* well enough to work from, which is `lanes next` above. Charts are deferred to Phase 2
-and are a *presentation* upgrade, not a capability one, because every fact a chart would show is
-already in the index by the end of Phase 1.
-
-**Phase 1 is the recommendation.** It is **32 points — six weeks** — and it clears more MUSTs
-than any tool in the survey, including the three nobody satisfied. Phases 2 and 3 are convenience
-and can be judged later, on evidence, which is also the project's own methodology.
 
 ## Alternative: Go
 

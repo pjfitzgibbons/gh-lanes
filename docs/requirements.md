@@ -62,7 +62,7 @@ traded · `COULD`: nice, and no tool gets credit for it over a MUST.
 
 | # | Priority | Requirement | Why |
 |---|---|---|---|
-| **E1** | MUST | **First-class blocks / blocked-by relationships** | Dependencies drive ordering, readiness and baseline dates. GitHub Issues has native blocked-by / blocking relationships; `depends_on` is tracker-owned regardless (see the ADR, *Field ownership is disjoint*) |
+| **E1** | MUST | **First-class blocks / blocked-by relationships** | Dependencies drive ordering, readiness and baseline dates. GitHub Issues has native blocked-by / blocking relationships; `depends_on` is tracker-owned regardless (see the [architecture](architecture.md), *Field ownership is disjoint*) |
 | **E2** | MUST | **Cycle detection**, or data good enough to detect cycles reliably in a script | A cycle makes the topological sort undefined, and the sort drives both ordering and baseline dates |
 | **E3** | MUST | **Priority that lets newly filed urgent work outrank everything older** | Issue-number ordering sorts a new P0 last, which is backwards |
 | **E4** | SHOULD | Dependencies are *intra-milestone only* by convention; cross-Act sequence comes from milestone order | Recording what milestone order already implies produces a dense, cycle-prone, useless edge list |

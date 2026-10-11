@@ -4,7 +4,7 @@
 owns estimates, lanes, dependencies, priorities and frozen baselines, while GitHub Issues keeps
 owning identity, state and labels. It is **not** an issue tracker.
 
-Read `docs/design/0001-phase-1.md` before writing code. `docs/adr/0001-architecture.md` is the
+Read `docs/design/0001-phase-1.md` before writing code. `docs/architecture.md` is the
 architecture; `docs/requirements.md` is the spec; `docs/alternatives-survey.md` records the eleven
 tools that were evaluated and rejected first.
 
