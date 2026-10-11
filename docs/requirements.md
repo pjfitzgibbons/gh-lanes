@@ -1,6 +1,6 @@
-# 02 — Project tracking requirements
+# Requirements
 
-What the tracker for Contoso Health Partners has to do. Written 2026-10-10, after building the
+What the tracker for Contoso Health Partners has to do. Written after building the
 scheme on GitHub Issues + Projects v2 (`ms-security-docs` ADR 0001) and hitting enough walls to be worth writing down
 properly before evaluating alternatives.
 
@@ -45,7 +45,7 @@ traded · `COULD` — nice, and no tool gets credit for it over a MUST.
 | **C4** | MUST | **Re-baselining is deliberate and leaves a record** of when and why | |
 | **C5** | MUST | **Actual start and finish derived from evidence**, not typed — first commit on the item's branch, and the close event | A commit timestamp is evidence in git history; a typed date is an assertion. This matters in a project whose subject is audit trails |
 | **C6** | SHOULD | Planned-versus-actual variance visible per item and per Act | |
-| **C7** | COULD | **Gantt rendering** | Explicitly deferred 2026-10-10 — it answers "when will this be done", which for this duty cycle is a number nobody should trust. Wanted eventually, not now |
+| **C7** | COULD | **Gantt rendering** | Deferred: it answers "when will this be done", which for this duty cycle is a number nobody should trust. Wanted eventually, not now |
 | **C8** | SHOULD | No working-calendar/weekend logic that would double-count idleness already inside the weekly velocity | |
 
 ## D. Parallelism — the requirement GitHub could not express
@@ -62,11 +62,11 @@ traded · `COULD` — nice, and no tool gets credit for it over a MUST.
 
 | # | Priority | Requirement | Why |
 |---|---|---|---|
-| **E1** | MUST | **First-class blocks / blocked-by relationships** | The original Projects setup used a comma-separated text field with no validation or UI. GitHub now has native blocked-by / blocking relationships, but `depends_on` stays tracker-owned — see the ADR, *Field ownership is disjoint* |
+| **E1** | MUST | **First-class blocks / blocked-by relationships** | Dependencies drive ordering, readiness and baseline dates. GitHub Issues has native blocked-by / blocking relationships; `depends_on` is tracker-owned regardless — see the ADR, *Field ownership is disjoint* |
 | **E2** | MUST | **Cycle detection**, or data good enough to detect cycles reliably in a script | A cycle makes the topological sort undefined, and the sort drives both ordering and baseline dates |
 | **E3** | MUST | **Priority that lets newly filed urgent work outrank everything older** | Issue-number ordering sorts a new P0 last, which is backwards |
 | **E4** | SHOULD | Dependencies are *intra-milestone only* by convention; cross-Act sequence comes from milestone order | Recording what milestone order already implies produces a dense, cycle-prone, useless edge list |
-| **E5** | COULD | Readable total ordering (rank) | Tried and rejected — an opaque rank integer carries no intent where a priority band does |
+| **E5** | COULD | Readable total ordering (rank) | A bare rank was rejected: an opaque integer carries no intent where a priority band does. `ordinal`, a tiebreak inside a priority band, is adopted because ordering tasks across repos is still needed |
 
 ## F. States
 
@@ -117,13 +117,13 @@ below was verified in this project, not read in a comparison article.
 
 | Requirement | How it failed |
 |---|---|
-| **A2** milestones span repos | They do not. Forces central issues now and a hand-synced migration at Act 1 |
+| **A2** milestones span repos | They do not. Forces central issues and a hand-synced migration at Act 1 |
 | **B2** estimate visible in lists | Not shown anywhere in a list view. Worked around by prefixing titles, which needs a lint to prevent drift |
 | **B3** split rule enforceable | No server-side validation. Lint only |
 | **C3** frozen baseline | No concept of one. Built from two date fields and a convention |
 | **C5** derived actuals | No mechanism. `Actual Finish` works only because `closedAt` is readable; `Actual Start` is still unimplemented |
 | **D2** group board by lane | **Cannot group a board by labels at all.** Lanes had to become a single-select field |
-| **E1** dependencies | No dependency relationship exists. Text field, no validation, no UI. 🔧 **Corrected 2026-10-10:** native blocked-by / blocking exists now (`Issue.blockedBy`, `gh issue edit --add-blocked-by`) |
+| **E1** dependencies | Projects v2 has no dependency field; the workaround is a text field with no validation and no UI. GitHub Issues has native blocked-by / blocking (`Issue.blockedBy`, `gh issue edit --add-blocked-by`), which the tracker does not use |
 | **E3** priority ordering | Projects v2 exposes no readable rank or position, so view order is unusable from a script |
 | **F3** reorder without orphaning | Reordering single-select options **replaces the whole list**; existing option ids must be passed back or values are orphaned |
 | **G3** no new credential | Satisfied only by declining automation. `GITHUB_TOKEN` cannot touch projects, so any Action needs a PAT |

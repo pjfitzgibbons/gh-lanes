@@ -1,6 +1,6 @@
 # ADR 0001 — Architecture for a bespoke GitHub-integrated tracker
 
-**Status:** proposed 2026-10-10 · **Inputs:** [`requirements.md`](../requirements.md) ·
+**Status:** proposed · **Inputs:** [`requirements.md`](../requirements.md) ·
 [`alternatives-survey.md`](../alternatives-survey.md)
 
 ## Definitions
@@ -90,7 +90,7 @@ assertions, and a record that an auditor could follow.
 
 | Layer | Choice | Why this and not the obvious alternative |
 |---|---|---|
-| Language | **Python 3.14+** (🔧 raised from 3.12 on 2026-10-10: CI tests one version, 3.14, so the floor is what is tested) | Already this project's tooling language — the attribution hook, the `wp-publish` skill and the gantt generator are all Python. `uv 0.11.7` is installed. Adding a second toolchain to a docs repo costs more than it returns |
+| Language | **Python 3.14+** (the floor is the one version CI tests) | Already this project's tooling language — the attribution hook, the `wp-publish` skill and the gantt generator are all Python. `uv 0.11.7` is installed. Adding a second toolchain to a docs repo costs more than it returns |
 | GitHub access | **subprocess to `gh`** | **The decisive choice.** `gh` is already authenticated, so **G3 is satisfied natively with no PAT anywhere.** PyGithub or httpx would each need a token — the exact cost that killed the auto-add Action |
 | Web | **FastAPI + Jinja2 + HTMX** | No build step, no npm, no bundler, server-rendered HTML. HTMX gives drag-and-drop and partial updates with attributes rather than a front-end app. For a single-user local tool, a React SPA is the wrong complexity |
 | Index | **SQLite via stdlib `sqlite3`** | No server, no driver, no ORM needed. It is a cache, so schema migrations are irrelevant — delete and reindex |
@@ -230,7 +230,7 @@ $ lanes why 20
 All three take `--json`, so an agent can consume them without parsing columns.
 
 🔑 **If `lanes next` is not useful enough to work from, Phase 1 has failed** and the HTML views are
-not optional after all. That is the explicit test, decided before building rather than after.
+not optional after all. That is the explicit test.
 
 ## Data model
 
@@ -275,9 +275,8 @@ copy means no divergence means nothing to reconcile. Tracker-owned fields are ne
 GitHub, so GitHub cannot contradict them either. The two sets are disjoint, and the only overlap is
 one mirrored field in one direction.
 
-🔧 **Decided 2026-10-10: `depends_on` stays tracker-owned, although GitHub now has native
-dependencies.** The premise that GitHub has no dependency relationship turned out to be wrong:
-the GraphQL `Issue` type has `blockedBy` / `blocking` / `issueDependenciesSummary`, with
+**`depends_on` stays tracker-owned, although GitHub has native dependencies.** The GraphQL
+`Issue` type has `blockedBy` / `blocking` / `issueDependenciesSummary`, with
 `addBlockedBy` / `removeBlockedBy` mutations, and `gh issue edit` has `--add-blocked-by` /
 `--add-blocking` (verified against the API on `gh` 2.102.0). GitHub's field is not read, written
 or reconciled. Revisit if experience shows the native field would serve better.
@@ -387,7 +386,7 @@ system tolerant of every creation route, including ones we have not thought of.
 
 ### Sub-issues — GitHub owns the relationship, we own the planning
 
-Checked against `A4`, `A5`, `A6` on 2026-10-10.
+Checked against `A4`, `A5`, `A6`. GitHub behaviour as of 2026-10-10.
 
 | Need | Met? | By what |
 |---|---|---|
@@ -409,7 +408,7 @@ would have had to live in our files after all.
 
 ### The join key, and why `issue:` alone is wrong
 
-🔧 **Corrected by this question.** An issue *number* is not stable — `gh issue transfer` changes it,
+An issue *number* is not stable — `gh issue transfer` changes it,
 and the Act 1 migration moves app issues into three new repos, so this is scheduled, not
 hypothetical. The schema therefore carries **`node_id`** (GitHub's global id, stable across
 transfer) as the real key, with `issue:` kept as the human-readable one and treated as a cache.
@@ -436,7 +435,7 @@ the number would be much larger and the risk open-ended, which is exactly why it
 
 ## Rendering — generated HTML, not Mermaid
 
-**Decided 2026-10-10: Mermaid is out.** All charts, graphs and tables are generated HTML.
+**Mermaid is not used.** All charts, graphs and tables are generated HTML.
 
 | Artifact | Technique |
 |---|---|
@@ -451,22 +450,21 @@ in Phase 3 is HTMX attributes.
 
 ### What this gains
 
-**Dependency arrows become possible.** The reason the Gantt was shelved was that Mermaid `gantt`
-sequences with `after` but **draws no arrows and has no critical path** — so `Depends On` affected
-bar position only and the reader could not see *why*. Inline SVG over a CSS grid draws the edges.
-The chart that was abandoned as not-worth-it becomes the chart that shows the real structure.
+**Dependency arrows become possible.** Mermaid `gantt` sequences with `after` but **draws no
+arrows and has no critical path**, so a dependency affects bar position only and the reader cannot
+see *why*. Inline SVG over a CSS grid draws the edges, so the chart shows the real structure.
 
 Also: no 44-character label truncation, real tooltips, and a lane board and a timeline that are the
 same template with different column semantics.
 
 ### What this costs
 
-⚠️ **GitHub will no longer render the charts.** Mermaid in a committed `.md` renders natively in the
-GitHub UI, so anyone with the link saw the chart with no tooling. An HTML file in a repo displays as
-**source**. So:
+⚠️ **GitHub does not render the charts.** Mermaid in a committed `.md` renders natively in the
+GitHub UI, so anyone with the link sees the chart with no tooling. An HTML file in a repo displays
+as **source**. So:
 
-- The charts become **build artifacts, not committed evidence** — generated into `.tracker/out/` and
-  **gitignored**, not committed like `docs/gantt/*.md` were.
+- The charts are **build artifacts, not committed evidence** — generated into `.tracker/out/` and
+  **gitignored**.
 - **`G1` is unaffected**, because `G1` is about the tracking *data* — the item YAML — which is still
   committed and diffable. It is the *rendering* that stops being viewable without running something.
 - If a chart is ever needed in a blog post or for someone with no checkout, it is a screenshot or a
@@ -564,13 +562,13 @@ Where the UI effort concentrates.
 
 ### Not hard, but easy to get wrong
 
-**`A4` sub-issues** (2, down from 3) — 🔧 **corrected 2026-10-10.** The earlier note that this
-needs raw GraphQL was wrong. `gh` wraps it fully on 2.102.0 — `gh issue create --parent`,
+**`A4` sub-issues** (2) — `gh` wraps sub-issues fully on 2.102.0, so no raw GraphQL is needed for
+writes: `gh issue create --parent`,
 `gh issue edit --add-sub-issue|--parent|--remove-parent`. Reads come from one query over
 `Issue.parent` / `subIssues` / `subIssuesSummary`.
 
 **Parentage is a GitHub-owned field.** It is *not* stored in item files, for the same reason labels
-are not: GitHub already holds it, so a copy could only diverge. See *Sub-issues* below.
+are not: GitHub already holds it, so a copy could only diverge. See *Sub-issues* above.
 
 ## Phasing — each phase independently useful
 
@@ -585,7 +583,7 @@ are not: GitHub already holds it, so a copy could only diverge. See *Sub-issues*
 and are a *presentation* upgrade, not a capability one, because every fact a chart would show is
 already in the index by the end of Phase 1.
 
-**Phase 1 is the recommendation.** It is **32 points — six weeks** (🔧 corrected 2026-10-10 from ~20, which omitted repo setup, tests and the migration) — and it clears more MUSTs
+**Phase 1 is the recommendation.** It is **32 points — six weeks** — and it clears more MUSTs
 than any tool in the survey, including the three nobody satisfied. Phases 2 and 3 are convenience
 and can be judged later, on evidence, which is also the project's own methodology.
 
@@ -646,7 +644,7 @@ workspace).
 | **Streamlit / Gradio** | Fast to start, fights you on layout, and a kanban board is exactly the layout they are bad at |
 | **TUI (Textual)** | Genuinely attractive and much cheaper — but a board is a 2-D spatial artifact and the chart needs to be shareable in a blog post |
 | **Static site generator** | Read-only by construction, so Phase 3 is impossible. Phase 2's `lanes render` is the useful part of this idea without the framework |
-| **Mermaid** | **Rejected 2026-10-10.** Renders free on GitHub, but **draws no dependency arrows and has no critical path** — the limitation that made the Gantt not worth building. Also truncates labels and has no tooltips |
+| **Mermaid** | Renders free on GitHub, but **draws no dependency arrows and has no critical path** — which is what a dependency chart is for. Also truncates labels and has no tooltips |
 | **A JS chart library** (Chart.js, D3, Frappe Gantt) | A dependency and a build step for layout that CSS Grid already does. D3 would be justified only if the dependency graph needed force-directed layout |
 
 ### Scope
