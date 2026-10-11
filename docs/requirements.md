@@ -1,7 +1,7 @@
 # 02 — Project tracking requirements
 
 What the tracker for Contoso Health Partners has to do. Written 2026-10-10, after building the
-scheme on GitHub Issues + Projects v2 (ADR 0001) and hitting enough walls to be worth writing down
+scheme on GitHub Issues + Projects v2 (`ms-security-docs` ADR 0001) and hitting enough walls to be worth writing down
 properly before evaluating alternatives.
 
 **Scope note.** This is a solo, public, blogged teaching project: nine Acts, two Interludes, four
