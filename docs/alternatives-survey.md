@@ -1,6 +1,6 @@
 # 03 — Tracking options: analysis matrix
 
-Scored against [`02-tracking-requirements.md`](02-tracking-requirements.md). Survey 2026-10-10.
+Scored against [`requirements.md`](requirements.md). Survey 2026-10-10.
 
 **✅** native · **⚠️** workaround · **💰** paid tier · **❌** absent · **🔍** unverified
 
@@ -107,11 +107,11 @@ of story links and estimates unverified; 200 req/min, no confirmed bulk endpoint
 From source and primary listings, not vendor summaries:
 
 - 🔧 **Huly is no longer viable.** `hcengineering/platform` is **frozen**, the hosted service
-  **discontinued**, and the active fork has no releases. **ADR 0001 names Huly as its fallback —
+  **discontinued**, and the active fork has no releases. **`ms-security-docs` ADR 0001 names Huly as its fallback —
   that choice is void** and the ADR needs amending.
 - 🔧 **Easy Gantt may be free, not paid.** The redmine.org listing (v6.0, 2025-02-19, GPL-2) says
   the "Pro" plugin is "completely FREE to download" and lists **baselines**. Vendor page 404s so
-  terms are 🔍 — but ADR 0001 states flatly that it is paid, and that is not safe. **If it is free
+  terms are 🔍 — but `ms-security-docs` ADR 0001 states flatly that it is paid, and that is not safe. **If it is free
   and works, Redmine becomes the only free tool with real schedule baselines.**
 - 🔧 **OpenProject and Redmine both have cycle detection**, verified in source
   (`circular_dependency?`). I had recorded `E2` as universally absent. Wrong.
@@ -122,7 +122,7 @@ From source and primary listings, not vendor summaries:
 
 | Tool | Why |
 |---|---|
-| **Huly** | **Hosted service discontinued; `hcengineering/platform` frozen.** Active fork has no releases. ⚠️ *This was ADR 0001's named fallback — that choice is now void* |
+| **Huly** | **Hosted service discontinued; `hcengineering/platform` frozen.** Active fork has no releases. ⚠️ *This was `ms-security-docs` ADR 0001's named fallback — that choice is now void* |
 | **Plane** | GitHub integration **and bulk operations** are Pro (pricing page, confirmed). API 60 req/min |
 | **Height** | Shut down 2025-09-24 |
 | **Focalboard** | README: "currently not maintained" |

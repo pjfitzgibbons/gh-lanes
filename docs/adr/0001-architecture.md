@@ -1,12 +1,12 @@
-# ADR 0002 — Architecture for a bespoke GitHub-integrated tracker
+# ADR 0001 — Architecture for a bespoke GitHub-integrated tracker
 
-**Status:** proposed 2026-10-10 · **Inputs:** [`02-tracking-requirements.md`](../research/02-tracking-requirements.md) ·
-[`03-tracking-options-matrix.md`](../research/03-tracking-options-matrix.md)
+**Status:** proposed 2026-10-10 · **Inputs:** [`requirements.md`](../requirements.md) ·
+[`alternatives-survey.md`](../alternatives-survey.md)
 
 ## Definitions
 
 **The tool is `gh-lanes` (product: GH Lanes, CLI: `lanes`), in its own repo. Its *data* lives in
-`ms-security-docs/.tracker/`. See [design 0001](../design/0001-tracker-phase-1.md).**
+`ms-security-docs/.tracker/`. See [design 0001](../design/0001-phase-1.md).**
 
 | Term | Definition |
 |---|---|
@@ -169,7 +169,7 @@ That is the same principle the current gantt tooling already uses: `extract.py` 
 | `lanes pull [--repo R] [--fresh]` | Explicit index refresh |
 | `lanes reindex` | Rebuild SQLite from the committed files. Always safe — the index is derived |
 | `lanes serve [--port 7420]` | The local web UI, bound to localhost |
-| `lanes render` | Mermaid lane chart and Gantt into `docs/` |
+| `lanes render` | HTML lane board and timeline into `.tracker/out/` (gitignored) |
 
 **Global flags:** `--offline` (never call `gh`; serve stale index with a warning), `--json` (machine
 output on every query command), `--repo` (scope to one of the four).
@@ -254,7 +254,7 @@ baseline:
   reason: "Act 0 checkpoint"
 ```
 
-Deliberately absent: title, body, status, labels, assignee. Those are GitHub's, read through `gh`
+Deliberately absent: title, body, labels, assignee. Those are GitHub's, read through `gh`
 and cached in the index. **Not duplicated in a file we would then have to reconcile.**
 
 ## The GitHub boundary — how sync actually works
@@ -274,6 +274,13 @@ whole design, and it is why "git is the database" does not collapse into a recon
 copy means no divergence means nothing to reconcile. Tracker-owned fields are never pushed to
 GitHub, so GitHub cannot contradict them either. The two sets are disjoint, and the only overlap is
 one mirrored field in one direction.
+
+🔧 **Decided 2026-10-10: `depends_on` stays tracker-owned, although GitHub now has native
+dependencies.** The premise that GitHub has no dependency relationship turned out to be wrong:
+the GraphQL `Issue` type has `blockedBy` / `blocking` / `issueDependenciesSummary`, with
+`addBlockedBy` / `removeBlockedBy` mutations, and `gh issue edit` has `--add-blocked-by` /
+`--add-blocking` (verified against the API on `gh` 2.102.0). GitHub's field is not read, written
+or reconciled. Revisit if experience shows the native field would serve better.
 
 ### Three operations, not one "sync"
 
@@ -569,9 +576,9 @@ are not: GitHub already holds it, so a copy could only diverge. See *Sub-issues*
 
 | Phase | Contents | sp | Standing value if we stop here |
 |---|---|---|---|
-| **1 — CLI only, terminal views** | schema, validation, cycle detection, pull, reconcile, index, **`next` / `ready` / `why` / `board`**, plus repo setup, tests and migrating the live items | **32** | **Already beats today**: real dependencies, cycle detection, server-side split rule, baselines, evidence in git, no rate limits, and a usable *what-next* answer |
+| **1 — CLI only, terminal views** | schema, validation, cycle detection, pull, reconcile, title mirror, index, **`next` / `ready` / `why` / `board`**, plus repo setup, tests and migrating the live items | **32** | **Already beats today**: real dependencies, cycle detection, server-side split rule, baselines, evidence in git, no rate limits, and a usable *what-next* answer |
 | **2 — HTML views** | Jinja templates, CSS Grid board and timeline, SVG dependency arrows, `lanes render` → `.tracker/out/`, then FastAPI serving the same templates | ~18 | The board and the arrows nothing we have can draw |
-| **3 — write UI + sync** | drag, title mirror, orphan reconcile, transfer handling | ~26 | Full replacement |
+| **3 — write UI + sync** | drag, transfer handling | ~26 | Full replacement |
 
 **Phase 1 returns to ~20 points — four weeks — on one condition:** the terminal must answer
 *what next* well enough to work from, which is `lanes next` above. Charts are deferred to Phase 2
@@ -638,7 +645,7 @@ workspace).
 | **React / Vue / Svelte SPA** | A build step, `node_modules`, and an API boundary, for a single-user local board. HTMX does drag-and-drop with attributes |
 | **Streamlit / Gradio** | Fast to start, fights you on layout, and a kanban board is exactly the layout they are bad at |
 | **TUI (Textual)** | Genuinely attractive and much cheaper — but a board is a 2-D spatial artifact and the chart needs to be shareable in a blog post |
-| **Static site generator** | Read-only by construction, so Phase 3 is impossible. Phase 1's `lanes render` is the useful part of this idea without the framework |
+| **Static site generator** | Read-only by construction, so Phase 3 is impossible. Phase 2's `lanes render` is the useful part of this idea without the framework |
 | **Mermaid** | **Rejected 2026-10-10.** Renders free on GitHub, but **draws no dependency arrows and has no critical path** — the limitation that made the Gantt not worth building. Also truncates labels and has no tooltips |
 | **A JS chart library** (Chart.js, D3, Frappe Gantt) | A dependency and a build step for layout that CSS Grid already does. D3 would be justified only if the dependency graph needed force-directed layout |
 

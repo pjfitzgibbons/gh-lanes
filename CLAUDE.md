@@ -40,8 +40,7 @@ Everything this repo needs is therefore stated here or committed in `.claude/`.
 - **Peter runs the commands.** Hand him the command rather than executing it — except reads,
   inspections, running the test suite, and cleaning up your own mess.
 - **Cite or flag.** A claim about GitHub's API behaviour gets a verified source or is marked 🔍
-  unverified. Several claims in `docs/` were wrong on the first pass and had to be retracted; the
-  retractions are kept visible on purpose.
+  unverified.
 - **Verify against the API, not the docs, where they disagree.** This project has already found
   GitHub docs and GitHub behaviour differing — display-only project fields, and `gh` sub-issue
   support that was reported absent and is present.
