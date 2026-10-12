@@ -18,7 +18,6 @@ repos:
   web-app:     { path: ".", gh: "example-org/web-app" }
   billing-api: { path: "../billing-api", gh: "example-org/billing-api" }
 lanes: [api, frontend, docs, infra]
-statuses: [Icebox, Todo, "In Progress", Blocked, Done]
 hours_per_point: 8.0
 time_source:
   kind: timewarrior
@@ -114,7 +113,6 @@ def test_defaults(tmp_path):
     c = config.load(make_tracker(tmp_path))
     assert c.stale_after_minutes == 15
     assert c.write_pause_seconds == 1.0
-    assert c.statuses == config.DEFAULT_STATUSES
     assert c.hours_per_point == 8.0
     assert c.time_source is None
 
@@ -123,7 +121,7 @@ def test_defaults(tmp_path):
     ("change", "message"),
     [
         ({"lanes": ["api", "api"]}, "lanes repeats api"),
-        ({"statuses": ["Todo", "Done", "Todo"]}, "statuses repeats Todo"),
+        ({"statuses": ["Todo", "Done"]}, "statuses"),
         ({"lanes": []}, "lanes"),
         ({"repos": {}}, "repos"),
         ({"points_per_week": 0}, "points_per_week"),

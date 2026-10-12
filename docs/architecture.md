@@ -101,7 +101,7 @@ Committed item files are the source of truth and SQLite is a disposable index
 repo/.tracker/
   items/web-app/23.yml  ← one file per issue, under its repo's short name. The source of truth. Committed
   milestones/beta.yml   ← one file per milestone, which may span repos
-  config.yml            ← points_per_week, hours_per_point, repos, lanes, statuses, time_source
+  config.yml            ← points_per_week, hours_per_point, repos, lanes, time_source
   .cache/index.db       ← SQLite. Derived, gitignored, deletable, rebuilt in seconds
   out/                  ← generated HTML. Gitignored
 ```

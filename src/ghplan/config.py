@@ -16,7 +16,6 @@ from ruamel.yaml import YAML, YAMLError
 TRACKER_DIR = ".tracker"
 CONFIG_FILE = "config.yml"
 ROOT_ENV = "PLAN_ROOT"
-DEFAULT_STATUSES = ["Icebox", "Todo", "In Progress", "Blocked", "Done"]
 # GitHub's owner rule: ASCII letters, digits and single inner hyphens. Repo names: ASCII letters,
 # digits, `.`, `-` and `_`, with `.` and `..` reserved.
 GH_REPO = re.compile(r"(?a)[A-Za-z0-9](?:-?[A-Za-z0-9])*/[A-Za-z0-9._-]+")
@@ -74,17 +73,14 @@ class Config(BaseModel):
     write_pause_seconds: float = Field(default=1.0, ge=0)
     repos: dict[str, Repo] = Field(min_length=1)
     lanes: list[str] = Field(min_length=1)
-    statuses: list[str] = Field(default_factory=lambda: list(DEFAULT_STATUSES))
     hours_per_point: float = Field(default=8.0, gt=0)
     time_source: TimeSourceConfig | None = None
 
     @model_validator(mode="after")
-    def _no_duplicates(self) -> Self:
-        for name in ("lanes", "statuses"):
-            values = getattr(self, name)
-            dupes = sorted({v for v in values if values.count(v) > 1})
-            if dupes:
-                raise ValueError(f"{name} repeats {', '.join(dupes)}")
+    def _no_duplicate_lanes(self) -> Self:
+        dupes = sorted({v for v in self.lanes if self.lanes.count(v) > 1})
+        if dupes:
+            raise ValueError(f"lanes repeats {', '.join(dupes)}")
         return self
 
 
