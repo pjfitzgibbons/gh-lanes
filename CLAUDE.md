@@ -1,6 +1,6 @@
-# gh-lanes — repo instructions
+# gh-plan — repo instructions
 
-**GH Lanes** is a planning layer over GitHub Issues: a local CLI (later a localhost web UI) that
+**GH Plan** is a planning layer over GitHub Issues: a local CLI (later a localhost web UI) that
 owns the planning fields, while GitHub Issues keeps owning identity, state, labels and
 dependencies. It is **not** an issue tracker.
 
@@ -9,7 +9,7 @@ architecture, `docs/adr/` holds the decisions behind it, and `docs/requirements.
 
 ## ⚠️ This repo inherits nothing
 
-`gh-lanes` lives at `~/programming/gh-lanes`, outside the `~/programming/ms-security/` workspace, so
+`gh-plan` lives at `~/programming/gh-plan`, outside the `~/programming/ms-security/` workspace, so
 **no `CLAUDE.md`, `settings.json` or `.mcp.json` from that workspace reaches here.** That is the
 verified config-resolution rule, not a guess: `CLAUDE.md` inherits from ancestor directories only,
 and `settings.json` anchors to the launch directory. There is no ancestor `CLAUDE.md` above
@@ -53,7 +53,7 @@ Everything this repo needs is therefore stated here or committed in `.claude/`.
 The authoritative list, with the reasons, is
 [`docs/architecture.md` §12](docs/architecture.md#invariants).
 
-1. **Git is the database. SQLite is a disposable index**, rebuilt by `lanes reindex`.
+1. **Git is the database. SQLite is a disposable index**, rebuilt by `plan reindex`.
 2. **Field ownership is disjoint.** The only write-back to GitHub is the `[N]` title prefix.
 3. **`gh.py`, `git.py` and the `timekeeping/` adapters are the only modules that spawn a process or
    open a network connection.** Everything else stays pure and testable without a network.

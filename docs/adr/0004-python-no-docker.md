@@ -36,7 +36,7 @@ It runs with `uv run`, and `uv.lock` pins its dependencies. Docker is not on the
 - Rust. Compile times and ceremony for a CRUD application.
 - Ruby or PHP. Not chosen; Python won on knowledge and simplicity.
 - Docker as the run path. Running in a container means bind-mounting the repo and `~/.config/gh`
-  and reconciling uid and gid, which is more moving parts than `uv run lanes serve` for a
+  and reconciling uid and gid, which is more moving parts than `uv run plan serve` for a
   single-user tool bound to localhost. Docker's advantages do not apply here: there is one
   service, `uv.lock` already pins dependencies, and the tool must not be isolated from the repo it
   edits.
@@ -51,5 +51,5 @@ It runs with `uv run`, and `uv.lock` pins its dependencies. Docker is not on the
 - `gh.py`, `git.py` and the `timekeeping/` adapters ([ADR 0006](0006-tracked-time.md)) are the only
   modules that spawn a process or open a network connection, so everything else is testable without
   a network.
-- A `Dockerfile` is optional. It can run `lanes validate` hermetically in CI, and it serves as a
+- A `Dockerfile` is optional. It can run `plan validate` hermetically in CI, and it serves as a
   reproducibility fallback if the tool is still wanted years from now.

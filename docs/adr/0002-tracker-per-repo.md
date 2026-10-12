@@ -8,7 +8,7 @@ Proposed.
 <a id="context"></a>
 ## 2. Context
 
-`gh-lanes` is a general-purpose tool with no project-specific content. It has its own tests,
+`gh-plan` is a general-purpose tool with no project-specific content. It has its own tests,
 versioning and release cycle, and anyone can install it without the projects that use it.
 
 Planning data belongs to the project it plans. Under [ADR 0001](0001-git-is-the-database.md) that
@@ -18,7 +18,7 @@ sit in git beside the work it describes.
 <a id="decision"></a>
 ## 3. Decision
 
-The tool lives in its own repo, `gh-lanes`.
+The tool lives in its own repo, `gh-plan`.
 
 Each planned project keeps its own `.tracker/` directory in its own repo. When one plan covers
 several repos ([`A1`](../requirements.md)), its `.tracker/` lists them in `config.repos`. The tool

@@ -29,7 +29,7 @@ as an hour sets it to 1. An item's estimated hours are `estimate × hours_per_po
 hours estimate of its own.
 
 Actual time is read from an external time tracker through one vendor-neutral interface. Each
-vendor gets one adapter module under `src/ghlanes/timekeeping/`. Core code sees only the interface,
+vendor gets one adapter module under `src/ghplan/timekeeping/`. Core code sees only the interface,
 which returns the tracker's time entries for a work item. A tracker is optional, and with none
 configured the feature is off.
 
@@ -54,7 +54,7 @@ Design detail is in [design 0002](../design/0002-tracked-time.md).
 
 - An hours estimate on each item, alongside points. It is a second estimate that drifts from the
   first, and nothing reconciles them.
-- Building timers into gh-lanes (`lanes start`, `lanes stop`). That makes the tool a time tracker,
+- Building timers into gh-plan (`plan start`, `plan stop`). That makes the tool a time tracker,
   which is a product of its own, and existing ones already do the job.
 - Calling one vendor directly with no interface. It ties item data and reports to that vendor, and
   changing trackers then means changing core code.
@@ -65,7 +65,7 @@ Design detail is in [design 0002](../design/0002-tracked-time.md).
   audit the number.
 - Recording time on GitHub, for example as issue comments. It adds a write-back, and ADR 0003 holds
   the title prefix as the only one.
-- Tying entries to an issue through a task or activity entity in the tracker. It needs gh-lanes to
+- Tying entries to an issue through a task or activity entity in the tracker. It needs gh-plan to
   create those entities, which is a write to another system, and not every tracker has them.
 - Tying entries to an issue by git branch. Only automatic trackers (WakaTime, Wakapi) record the
   branch, so it cannot be the common key. An adapter for one of those can still match on branch.
@@ -75,12 +75,12 @@ Design detail is in [design 0002](../design/0002-tracked-time.md).
 
 - `C6` gets an hours view: estimated hours against tracked hours per item and per milestone, and
   the observed hours per point against the configured `hours_per_point`.
-- `actual_time` joins the tracker-owned fields. It is written by reconcile and by `lanes time`,
+- `actual_time` joins the tracker-owned fields. It is written by reconcile and by `plan time`,
   never pushed to GitHub, and never typed by hand.
 - The figure is evidence with provenance: tracker, tag, entry count and fetch time sit next to the
   total, and `git log -p` shows when it changed ([`G5`](../requirements.md)).
 - A tracker that is unreachable at close does not block reconcile. The item goes to `Done` without
-  a snapshot, `validate` warns, and `lanes time N --apply` fills it in later.
+  a snapshot, `validate` warns, and `plan time N --apply` fills it in later.
 - Time logged after the close is not counted until someone re-snapshots the item.
 - The process rule in [ADR 0004](0004-python-no-docker.md) and the
   [design 0001 layout](../design/0001-phase-1.md#layout) widens to include `timekeeping/`. Adapters

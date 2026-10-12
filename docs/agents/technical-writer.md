@@ -1,4 +1,4 @@
-# technical-writer — gh-lanes
+# technical-writer — gh-plan
 
 <a id="technical-writer-lenses"></a>
 

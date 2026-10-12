@@ -1,6 +1,6 @@
 # Requirements
 
-These are the requirements gh-lanes meets. The [alternatives survey](alternatives-survey.md) scored
+These are the requirements gh-plan meets. The [alternatives survey](alternatives-survey.md) scored
 existing tools against the same list.
 
 They are sized for one person planning work across a few repos, a few hours at a time and not
