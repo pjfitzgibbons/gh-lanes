@@ -16,13 +16,13 @@ body:
     attributes:
       label: Scope
       description: What's in. Add "Out of scope:" only when someone might assume it's in.
-      value: "- "
+      placeholder: "- "
   - type: textarea
     id: acceptance
     attributes:
       label: Acceptance
       description: Testable statements, one per bullet.
-      value: "- "
+      placeholder: "- "
     validations:
       required: true
   - type: textarea
@@ -48,8 +48,6 @@ body:
         - [ ] L10 Docs impact
         - [ ] L11 Invariants
         - [ ] L12 Offline and concurrency
-    validations:
-      required: true
   - type: textarea
     id: planning
     attributes:
@@ -60,5 +58,3 @@ body:
         - Estimate:
         - Lane:
         - Milestone:
-    validations:
-      required: true

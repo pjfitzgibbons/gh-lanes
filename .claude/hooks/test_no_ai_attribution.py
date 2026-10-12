@@ -34,7 +34,10 @@ ALLOW = [
     ("trailer in heredoc", f"git commit -m \"$(cat <<'M'\nAct 0.3: hook\n\n{TRAILER}\nM\n)\""),
     ("unrelated command", "ls -la && echo Co-Authored-By: Claude"),
     ("amend no-edit", "git commit --amend --no-edit"),
-    ("fixup", "git commit --fixup abc1234"),
+    ("reuse message", "git commit -C HEAD"),
+    ("fixup with trailer", f'git commit --fixup abc1234 -m "{TRAILER}"'),
+    ("stdin heredoc", f"git commit -F - <<'M'\nFix\n\n{TRAILER}\nM"),
+    ("two commits, both with trailer", f'git commit -m "A" -m "{TRAILER}" && git commit -m "B" -m "{TRAILER}"'),
     ("prose in heredoc", "python3 - <<'PY'\ns=\"if it is a `git commit` whose text carries `Co-Authored-By: Claude`\"\nPY"),
     ("committer in prose", 'echo "the git committer said Co-Authored-By: Claude"'),
     ("gh pr view", "gh pr view 1 --json body | grep Claude-Session"),
@@ -46,6 +49,13 @@ MISSING_TRAILER = [
     ("plain commit", 'git commit -m "Act 0.3: attribution hook"'),
     ("agent without model", 'git commit -m "Fix" -m "Assisted-by: Claude"'),
     ("chained commit", 'git add -A && git commit -m "Fix"'),
+    ("fixup", "git commit --fixup abc1234"),
+    ("squash", "git commit --squash abc1234"),
+    ("trailer before the commit", f'echo "{TRAILER}" && git commit -m "Fix"'),
+    ("trailer after the commit", f'git commit -m "Fix" && echo "{TRAILER}"'),
+    ("trailer on the next line", f'git commit -m "Fix"\necho "{TRAILER}"'),
+    ("later reuse doesn't exempt", 'git commit -m "Fix" && git commit --amend --no-edit'),
+    ("second commit bare", f'git commit -m "A" -m "{TRAILER}"; git commit -m "B"'),
 ]
 
 BLOCK = [

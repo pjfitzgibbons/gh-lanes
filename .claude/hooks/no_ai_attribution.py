@@ -24,6 +24,7 @@ which then rewrites the message.
 
 import json
 import re
+import shlex
 import sys
 from pathlib import Path
 
@@ -55,7 +56,12 @@ AI_AUTHORSHIP = re.compile(
 ASSISTED_BY = re.compile(r"(?:^|[\s\"'])Assisted-by:\s*[A-Za-z][\w.-]*:[\w.-]+", re.MULTILINE)
 
 # Commit options that keep an existing message instead of writing a new one.
-REUSES_MESSAGE = re.compile(r"\s(?:--no-edit|-C|--reuse-message|--fixup|--squash)(?:[\s=]|$)")
+# --fixup and --squash are not among them: they write a new fixup!/squash!
+# commit, which needs a trailer like any other.
+REUSE_OPTIONS = ("--no-edit", "--reuse-message", "-C")
+
+# Characters that end one shell command and start the next.
+SEPARATORS = ";&|()\n"
 
 # git commit -F <file> and gh pr --body-file <file> keep the message where the
 # command string can't show it. Those files are read too.
@@ -81,35 +87,80 @@ def is_change_record(command: str) -> bool:
     return CHANGE_RECORD.search(command) is not None
 
 
+def read_file(name: str, cwd: str) -> str:
+    """A message file's contents, or "" if it isn't a readable file."""
+    path = Path(name)
+    if not path.is_absolute():
+        path = Path(cwd) / path
+    return path.read_text(errors="replace") if path.is_file() else ""
+
+
 def message_text(command: str, cwd: str = ".") -> str:
     """The command plus the contents of any message file it names."""
     text = command
     for match in MESSAGE_FILE.finditer(command):
-        path = Path(match.group(1))
-        if not path.is_absolute():
-            path = Path(cwd) / path
-        if path.is_file():
-            text += "\n" + path.read_text(errors="replace")
+        text += "\n" + read_file(match.group(1), cwd)
     return text
 
 
-def writes_new_commit_message(command: str) -> bool:
-    """True if the command makes a commit with a message of its own."""
-    match = COMMIT.search(command)
-    if match is None:
-        return False
-    return REUSES_MESSAGE.search(command[match.end() - 1:]) is None
+def shell_words(text: str) -> list[str]:
+    """Split text the way the shell would, keeping separators as words."""
+    lexer = shlex.shlex(text, posix=True, punctuation_chars=SEPARATORS)
+    lexer.whitespace = " \t\r"
+    lexer.whitespace_split = True
+    try:
+        return list(lexer)
+    except ValueError:  # unbalanced quote: fall back to a rough split
+        return text.split()
+
+
+def commit_invocations(command: str):
+    """Each git commit in the command, as (its arguments, the text after it).
+
+    The arguments stop at the next command separator, so a trailer elsewhere in
+    the command line can't stand in for one in the commit's own message.
+    """
+    for match in COMMIT.finditer(command):
+        rest = command[match.start():].lstrip(SEPARATORS + "$ \t")
+        words = []
+        for word in shell_words(rest):
+            if word and all(c in SEPARATORS for c in word):
+                break
+            words.append(word)
+        if "commit" in words:
+            yield words[words.index("commit") + 1:], rest
+
+
+def reuses_message(args: list[str]) -> bool:
+    return any(a.startswith(REUSE_OPTIONS) for a in args)
+
+
+def commit_message(args: list[str], rest: str, cwd: str) -> str:
+    """The commit's own message: its arguments plus any -F file it names."""
+    text = "\n".join(args)
+    for i, arg in enumerate(args):
+        if arg in ("-F", "--file") and i + 1 < len(args):
+            name = args[i + 1]
+        elif arg.startswith("--file="):
+            name = arg[len("--file="):]
+        elif arg.startswith("-F") and len(arg) > 2:
+            name = arg[2:]
+        else:
+            continue
+        # -F - reads stdin, usually a heredoc that follows the command.
+        text += "\n" + (rest if name == "-" else read_file(name, cwd))
+    return text
 
 
 def violation(command: str, cwd: str = ".") -> str | None:
     """The whole rule. Returns the reason to block, or None to allow."""
     if not is_change_record(command):
         return None
-    text = message_text(command, cwd)
-    if AI_AUTHORSHIP.search(text):
+    if AI_AUTHORSHIP.search(message_text(command, cwd)):
         return BLOCKED_AUTHORSHIP
-    if writes_new_commit_message(command) and not ASSISTED_BY.search(text):
-        return BLOCKED_MISSING
+    for args, rest in commit_invocations(command):
+        if not reuses_message(args) and not ASSISTED_BY.search(commit_message(args, rest, cwd)):
+            return BLOCKED_MISSING
     return None
 
 

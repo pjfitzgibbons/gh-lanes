@@ -17,7 +17,7 @@ body:
     attributes:
       label: Steps
       description: The commands or actions that reproduce it, on synthetic data only.
-      value: "1. "
+      placeholder: "1. "
     validations:
       required: true
   - type: textarea
@@ -38,7 +38,7 @@ body:
     attributes:
       label: Acceptance
       description: Testable statements, one per bullet. The first is usually that the steps above produce the expected result.
-      value: "- "
+      placeholder: "- "
     validations:
       required: true
   - type: textarea
@@ -64,8 +64,6 @@ body:
         - [ ] L10 Docs impact
         - [ ] L11 Invariants
         - [ ] L12 Offline and concurrency
-    validations:
-      required: true
   - type: textarea
     id: planning
     attributes:
@@ -76,5 +74,3 @@ body:
         - Estimate:
         - Lane:
         - Milestone:
-    validations:
-      required: true
