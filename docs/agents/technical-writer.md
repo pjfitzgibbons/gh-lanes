@@ -38,4 +38,5 @@ After the global sections 1–5, a design doc here adds:
 
 - **Lanes** in use: `cli`, `engine`, `github`, `infra`, `model`, `web`.
 - **Dependencies** are GitHub's blocked-by relationships, never lines in the body.
+- **Older issues** are rewritten to this outline when they're picked up, before any code, and never in bulk.
 - **Forms:** `.github/ISSUE_TEMPLATE/task.yml` and `bug.yml` produce this shape on github.com. Drafts written to `.tmp/` and created with `gh issue create --body-file` use the same sections.
