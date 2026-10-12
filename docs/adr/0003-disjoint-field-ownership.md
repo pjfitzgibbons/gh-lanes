@@ -42,8 +42,7 @@ store in item files would duplicate it. The tool is read-only for them: pull rea
 caches the edges in the index. People edit dependencies in GitHub or with
 `gh issue edit --add-blocked-by` and `--remove-blocked-by`.
 
-The full field table is in the architecture doc, *Field ownership is disjoint*
-([architecture](../architecture.md)).
+The full field table is in [architecture §3](../architecture.md#ownership).
 
 <a id="alternatives"></a>
 ## 4. Alternatives considered

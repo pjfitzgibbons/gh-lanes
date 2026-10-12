@@ -25,7 +25,7 @@ elements. Colour comes from CSS custom properties, with a shape or label alongsi
 depends on hue alone. Templates emit the HTML and CSS does the layout, with no build step.
 
 `lanes render` writes the output to `.tracker/out/`, and `lanes serve` serves the same templates.
-The technique table is in the architecture doc, *Rendering* ([architecture](../architecture.md)).
+The technique table is in [architecture §11](../architecture.md#views).
 
 <a id="alternatives"></a>
 ## 4. Alternatives considered
