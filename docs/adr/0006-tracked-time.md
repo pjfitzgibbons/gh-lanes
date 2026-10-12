@@ -36,7 +36,7 @@ configured the feature is off.
 `gh.py`, `git.py` and the `timekeeping/` adapters are the only modules that spawn a process or
 open a network connection. Everything else stays pure.
 
-Time entries are tied to an issue by a tag, `gh:<owner>/<repo>#<n>`, set by whoever starts the
+Time entries are tied to an issue by a tag, `<owner>/<repo>#<n>`, set by whoever starts the
 timer. That is the convention for trackers that support free-form tags. An adapter for a tracker
 without them correlates through another `WorkKey` field instead, such as the git branch for
 WakaTime ([design 0002](../design/0002-tracked-time.md)).
