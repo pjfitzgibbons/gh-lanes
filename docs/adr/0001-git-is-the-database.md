@@ -22,7 +22,7 @@ without re-parsing every item file on each request.
 <a id="decision"></a>
 ## 3. Decision
 
-The source of truth is one YAML file per item at `.tracker/items/<n>.yml` and one per milestone at
+The source of truth is one YAML file per item at `.tracker/items/<repo>/<n>.yml` and one per milestone at
 `.tracker/milestones/<id>.yml`, committed in git. Nothing authoritative lives anywhere else.
 
 SQLite at `.tracker/.cache/index.db` is a derived index of those files joined with GitHub facts. It
@@ -54,7 +54,7 @@ is [ADR 0003](0003-disjoint-field-ownership.md).
 
 - `G1`, `G2`: the data is committed YAML, readable in a browser on GitHub, with no export step and
   no lock-in.
-- `G5`: `git log -p .tracker/items/23.yml` shows who changed an estimate or baseline, when, and the
+- `G5`: `git log -p .tracker/items/web-app/23.yml` shows who changed an estimate or baseline, when, and the
   commit that explains why.
 - `G4`: there is no database to operate. A corrupt index is deleted and rebuilt.
 - [`C3`, `C4`](../requirements.md): a frozen baseline is a value in a committed file, and

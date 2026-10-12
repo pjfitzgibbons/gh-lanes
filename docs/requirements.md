@@ -22,7 +22,7 @@ traded · `COULD`: nice, and no tool gets credit for it over a MUST.
 | **A3** | MUST | **Milestone carries an exit criterion**, not just a due date | A milestone closes on its checkpoint, which is sometimes stricter than "all issues closed" |
 | **A4** | MUST | **Sub-tasks are first-class and schedulable**: own estimate, own dates, appear in every view | The >5-points split rule produces them constantly. A checkbox list is not sufficient: it cannot be scheduled or counted |
 | **A5** | SHOULD | **Parent roll-up** that does not double-count a parent carrying children | |
-| **A6** | COULD | Arbitrary depth of nesting | Two levels is usually enough |
+| **A6** | COULD | Nesting deeper than two levels | Two levels is usually enough, so deeper nesting is a COULD |
 
 <a id="estimation"></a>
 ## 3. Estimation (B)

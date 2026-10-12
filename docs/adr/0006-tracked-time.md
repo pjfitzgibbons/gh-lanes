@@ -36,8 +36,10 @@ configured the feature is off.
 `gh.py`, `git.py` and the `timekeeping/` adapters are the only modules that spawn a process or
 open a network connection. Everything else stays pure.
 
-Time entries are tied to an issue by a tag, `gh:<owner>/<repo>#<n>`. Every tracker considered
-supports free-form tags, and the tag is set by whoever starts the timer.
+Time entries are tied to an issue by a tag, `gh:<owner>/<repo>#<n>`, set by whoever starts the
+timer. That is the convention for trackers that support free-form tags. An adapter for a tracker
+without them correlates through another `WorkKey` field instead, such as the git branch for
+WakaTime ([design 0002](../design/0002-tracked-time.md)).
 
 The total is snapshotted into the item file when the issue closes. Reconcile already moves a
 closed issue's item to `Done`. In the same write it records the total tracked time and where it came

@@ -27,7 +27,7 @@ The tool (`gh-lanes`, product GH Lanes, CLI `lanes`) lives in its own repo. Its 
 | Term | Definition |
 |---|---|
 | Tracker | A local CLI plus an optional localhost web UI that owns the planning layer over GitHub Issues. Not an issue tracker |
-| Item | One YAML file, `.tracker/items/<n>.yml`, holding the planning fields for one GitHub issue. Committed. The source of truth |
+| Item | One YAML file, `.tracker/items/<repo>/<n>.yml`, holding the planning fields for one GitHub issue. `<repo>` is the repo's short name in `config.repos`. Committed. The source of truth |
 | Index | `.tracker/.cache/index.db`, SQLite. A join of GitHub facts and item files. Derived, gitignored, rebuildable |
 | GitHub-owned field | A field GitHub holds (§3.1). Read, never stored in an item file |
 | Tracker-owned field | A field the tracker holds (§3.2). Written to item files, never pushed to GitHub |
@@ -99,7 +99,7 @@ Committed item files are the source of truth and SQLite is a disposable index
 
 ```
 repo/.tracker/
-  items/23.yml          ← one file per issue. The source of truth. Committed
+  items/web-app/23.yml  ← one file per issue, under its repo's short name. The source of truth. Committed
   milestones/beta.yml   ← one file per milestone, which may span repos
   config.yml            ← points_per_week, hours_per_point, repos, lanes, statuses, time_source
   .cache/index.db       ← SQLite. Derived, gitignored, deletable, rebuilt in seconds
@@ -171,7 +171,7 @@ open a network connection. Everything else is pure and testable without a networ
           └───────────────────────────┬───────────────────────────────────────┘
                          (1) PULL     │ read-only, `gh`, no token
                                       ▼
-   .tracker/items/23.yml ───────▶ .cache/index.db ◀─── (3) MIRROR, one field only
+   items/web-app/23.yml ────────▶ .cache/index.db ◀─── (3) MIRROR, one field only
    estimate · lane · status        a JOIN of both,        `[N]` → issue title
    baseline · priority             nothing authoritative
    ▲                                      │
@@ -226,9 +226,14 @@ it, because it would corrupt the baseline.
 <a id="identity"></a>
 ## 7. Identity
 
-`gh issue transfer` changes an issue's number, so `node_id` is the key and `issue:` is a cache.
-Reconcile repairs a stale `issue:` from `node_id`
+`gh issue transfer` changes an issue's number and can change its repo, so `node_id` is the key and
+`issue:` is a cache. The file path, `items/<repo>/<n>.yml`, follows the cache so a person can find
+the file. Two repos can both have a #23, so the repo is part of the path. Reconcile repairs a stale
+`issue:` and `repo:` from `node_id` and renames the file to match, and git records the rename
 ([design 0001, *Identity*](design/0001-phase-1.md#identity)).
+
+Commands name an item by issue number when only one configured repo has that number, and as
+`<repo>#<n>` otherwise.
 
 A draft carries `draft: true` explicitly rather than being inferred from a null `issue:`. Reconcile
 must tell a draft, which is expected to have no issue yet, from an orphan, which unexpectedly has
@@ -246,7 +251,7 @@ An issue created in GitHub's web UI, on a phone, by a bot, or by someone who has
 tracker gets its number and `node_id` from GitHub. No item file exists yet, and nothing is lost:
 
 1. Pull brings it into the index like any other issue.
-2. Reconcile sees an issue with no item file and writes `.tracker/items/24.yml` with identity only:
+2. Reconcile sees an issue with no item file and writes `.tracker/items/web-app/24.yml` with identity only:
    `issue`, `node_id`, `repo`. It never guesses an estimate, lane or milestone.
 3. With no milestone, [`F1`](requirements.md) makes it `Icebox`. An untriaged issue is deferred
    until someone triages it.
@@ -292,7 +297,7 @@ against [`A4`, `A5`, `A6`](requirements.md), GitHub behaviour as of 2026-10-10:
 | `A4` sub-tasks are first-class and schedulable | ✅ | A sub-issue is an issue, so it gets its own number, its own item file, and its own estimate, lane, baseline and dependencies |
 | `A4` appear in every view | ✅ | Reconcile creates a child's item like any other issue's ([`H5`](requirements.md)) |
 | `A5` parent roll-up without double-count | ✅ | `subIssuesSummary{total completed percentCompleted}` from GitHub, plus the rule that a parent with children carries no estimate. The sum is computed in the index |
-| `A6` arbitrary depth | ✅ | 8 levels |
+| `A6` nesting deeper than two levels | ✅ | 8 levels |
 | Per-parent capacity | ✅ | 100 children, far more than splitting an item produces |
 | Cross-repo parent and child | ✅ | Documented, and `gh` accepts a URL as well as a number for `--parent` and `--add-sub-issue`. Docs-verified, not hands-tested 🔍 |
 
@@ -312,7 +317,7 @@ from one query over `Issue.parent` / `subIssues` / `subIssuesSummary`.
 
 | Event | Effect | Handling |
 |---|---|---|
-| Issue transferred to another repo | `issue:` goes stale, `node_id` still resolves | Reconcile rewrites `issue:` and `repo:`. No data lost |
+| Issue transferred to another repo | `issue:` goes stale, `node_id` still resolves | Reconcile rewrites `issue:` and `repo:` and renames the file. No data lost |
 | Issue deleted | `node_id` resolves to nothing | Orphan report; file kept until a human decides |
 | Issue reopened | `closedAt` clears | Derived `actual_finish` is computed, never cached in YAML, so it changes with it. Reconcile reports the item if it is still `Done`. The `actual_time` snapshot stays until the next close replaces it |
 | Crash between `gh issue create` and the file write | An issue with no item file | Reconcile creates the file (§8.3) |

@@ -57,7 +57,7 @@ class Item(BaseModel):
 In an item file:
 
 ```yaml
-# .tracker/items/23.yml
+# .tracker/items/web-app/23.yml
 estimate: 2
 status: Done
 actual_time:
@@ -184,9 +184,10 @@ hours per point: configured 8.0 · observed 7.6
   zero.
 - A parent with children has no estimate ([design 0001, *Validation*](0001-phase-1.md#validation)).
   Its row sums its children's estimates and snapshots, plus its own snapshot if time was tagged to
-  the parent itself.
-- Observed hours per point is total actual hours over total estimated points, across the rows that
-  count.
+  the parent itself. That row is for display only: totals count each child's estimate and snapshot
+  once, from the child's own row, and add only the time tagged to the parent itself.
+- Observed hours per point is total actual hours over total estimated points, with the same rule,
+  so no estimate or snapshot is counted twice.
 
 <a id="index"></a>
 ## 9. Index and validation
