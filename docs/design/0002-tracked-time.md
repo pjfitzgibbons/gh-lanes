@@ -253,6 +253,8 @@ hours per point: configured 8.0 · observed 7.6
   Its row sums its children's estimates and snapshots, plus its own snapshot if time was tagged to
   the parent itself. That row is for display only: totals count each child's estimate and snapshot
   once, from the child's own row, and add only the time tagged to the parent itself.
+- An issue closed as not planned (GitHub's `stateReason` is `NOT_PLANNED`) is left out of the report
+  and its totals. A last line names how many were left out, so the omission is visible.
 - Observed hours per point is total actual hours over total estimated points, with the same rule,
   so no estimate or snapshot is counted twice.
 
@@ -272,6 +274,8 @@ Rules added to [design 0001 §9](0001-phase-1.md#validation):
 | Done item has a snapshot, when a `time_source` is configured | WARN | `#N is Done with no tracked time — run lanes time N --apply` |
 | No timer was running at snapshot | WARN | `#N had 1 timer running at snapshot; that time is not counted` |
 | Snapshot has entries | WARN | `#N is Done with 0 tracked entries for owner/repo#N` |
+
+The two "Done" warnings skip an issue closed as not planned, because no time is expected on it.
 
 <a id="adapters"></a>
 ## 10. How each tracker would implement `entries`
