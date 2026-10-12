@@ -1,12 +1,11 @@
 # gh-lanes — repo instructions
 
 **GH Lanes** is a planning layer over GitHub Issues: a local CLI (later a localhost web UI) that
-owns estimates, lanes, dependencies, priorities and frozen baselines, while GitHub Issues keeps
-owning identity, state and labels. It is **not** an issue tracker.
+owns the planning fields, while GitHub Issues keeps owning identity, state, labels and
+dependencies. It is **not** an issue tracker.
 
-Read `docs/design/0001-phase-1.md` before writing code. `docs/adr/0001-architecture.md` is the
-architecture; `docs/requirements.md` is the spec; `docs/alternatives-survey.md` records the eleven
-tools that were evaluated and rejected first.
+Read `docs/design/0001-phase-1.md` before writing code. `docs/architecture.md` is the
+architecture, `docs/adr/` holds the decisions behind it, and `docs/requirements.md` is the spec.
 
 ## ⚠️ This repo inherits nothing
 
@@ -45,20 +44,15 @@ Everything this repo needs is therefore stated here or committed in `.claude/`.
   GitHub docs and GitHub behaviour differing — display-only project fields, and `gh` sub-issue
   support that was reported absent and is present.
 
-## Design invariants — do not break these without changing the ADR
+## Design invariants: do not break these without changing the architecture
 
-1. **Git is the database. SQLite is a disposable index.** Item files in `.tracker/items/*.yml` are
-   the source of truth and are committed. The index is derived, gitignored, and rebuilt by
-   `lanes reindex`.
-2. **Field ownership is disjoint.** GitHub-owned fields (title, body, state, labels, assignee,
-   `closedAt`, parent) are **never** copied into an item file. Tracker-owned fields (estimate,
-   priority, lane, `depends_on`, baseline, milestone) are **never** pushed to GitHub. The only
-   write-back is the `[N]` estimate prefix in an issue title.
-3. **`gh.py` and `git.py` are the only modules that spawn a process.** Everything else stays pure
-   and testable without a network.
-4. **GitHub first, then the file.** An issue with no item file self-heals via reconcile; a file with
-   no issue is an orphan needing a human. Always choose the failure mode that repairs itself.
-5. **Estimates are `Literal[1, 2, 3, 5]`.** 8 and 13 are refusal codes meaning "split this", and are
-   not representable in the model.
-6. **Never write project fields in a loop.** Batch them. Twenty-odd sequential GitHub project
-   mutations trip a *secondary* rate limit with 98% of the primary quota unused.
+The authoritative list, with the reasons, is
+[`docs/architecture.md` §12](docs/architecture.md#invariants).
+
+1. **Git is the database. SQLite is a disposable index**, rebuilt by `lanes reindex`.
+2. **Field ownership is disjoint.** The only write-back to GitHub is the `[N]` title prefix.
+3. **`gh.py`, `git.py` and the `timekeeping/` adapters are the only modules that spawn a process or
+   open a network connection.** Everything else stays pure and testable without a network.
+4. **GitHub first, then the file.** Always choose the failure mode that repairs itself.
+5. **Estimates are `Literal[1, 2, 3, 5]`.** 8 and 13 mean "split this" and are not representable.
+6. **Pace GitHub mutations** by `write_pause_seconds` (default 3). The secondary rate limit counts them.

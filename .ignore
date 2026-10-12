@@ -1,0 +1,3 @@
+# Read by ripgrep (VS Code search and quick open, Claude Code @-mentions), not by git.
+# Re-includes .tmp/ for searching and opening. .tmp/ stays gitignored, so it is never committed.
+!.tmp/

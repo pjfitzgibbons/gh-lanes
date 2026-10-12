@@ -1,4 +1,4 @@
-# 03 — Tracking options: analysis matrix
+# Alternatives survey
 
 Scored against [`requirements.md`](requirements.md). Survey 2026-10-10.
 
