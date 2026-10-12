@@ -5,17 +5,21 @@ holds `.tracker/` and skips the walk. See design 0001 *Discovery* and *Config*.
 """
 
 import os
+import re
 from datetime import date
 from pathlib import Path
 from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 from ruamel.yaml import YAML, YAMLError
 
 TRACKER_DIR = ".tracker"
 CONFIG_FILE = "config.yml"
 ROOT_ENV = "PLAN_ROOT"
 DEFAULT_STATUSES = ["Icebox", "Todo", "In Progress", "Blocked", "Done"]
+# GitHub's owner rule: ASCII letters, digits and single inner hyphens. Repo names: ASCII letters,
+# digits, `.`, `-` and `_`, with `.` and `..` reserved.
+GH_REPO = re.compile(r"(?a)[A-Za-z0-9](?:-?[A-Za-z0-9])*/[A-Za-z0-9._-]+")
 
 
 class TrackerError(Exception):
@@ -35,7 +39,22 @@ class Repo(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     path: str  # relative to the directory holding .tracker/
-    gh: str = Field(pattern=r"^[\w.-]+/[\w.-]+$")  # owner/name
+    gh: str  # owner/name
+
+    @field_validator("path")
+    @classmethod
+    def _relative(cls, v: str) -> str:
+        # An absolute path would replace the root when joined, and differ per machine.
+        if Path(v).is_absolute():
+            raise ValueError(f"path {v!r} must be relative to the tracker root")
+        return v
+
+    @field_validator("gh")
+    @classmethod
+    def _owner_name(cls, v: str) -> str:
+        if not GH_REPO.fullmatch(v) or v.split("/")[1] in (".", ".."):
+            raise ValueError(f"gh {v!r} is not owner/name")
+        return v
 
 
 class TimeSourceConfig(BaseModel):

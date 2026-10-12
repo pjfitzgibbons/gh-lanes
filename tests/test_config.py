@@ -129,6 +129,13 @@ def test_defaults(tmp_path):
         ({"points_per_week": 0}, "points_per_week"),
         ({"write_pause_seconds": -1}, "write_pause_seconds"),
         ({"repos": {"x": {"path": ".", "gh": "no-slash"}}}, "gh"),
+        ({"repos": {"x": {"path": "/abs/app", "gh": "o/r"}}}, "must be relative"),
+        ({"repos": {"x": {"path": ".", "gh": "-org/r"}}}, "not owner/name"),
+        ({"repos": {"x": {"path": ".", "gh": "org_x/r"}}}, "not owner/name"),
+        ({"repos": {"x": {"path": ".", "gh": "o/r/extra"}}}, "not owner/name"),
+        ({"repos": {"x": {"path": ".", "gh": "o/.."}}}, "not owner/name"),
+        ({"repos": {"x": {"path": ".", "gh": "ö/r"}}}, "not owner/name"),
+        ({"repos": {"x": {"path": ".", "gh": "o/r\n"}}}, "not owner/name"),
         ({"repos": {"x": {"path": ".", "gh": "o/r", "branch": "main"}}}, "branch"),
         ({"lanse": ["api"]}, "lanse"),
     ],
@@ -157,6 +164,11 @@ def test_unusable_config_file_is_a_tracker_error(tmp_path, text):
 
 
 # Paths the rest of the tool reads
+
+
+@pytest.mark.parametrize("gh", ["example-org/web-app", "a1/repo.name_2", "o/.github"])
+def test_accepts_github_names(gh):
+    assert config.Repo(path="../sibling", gh=gh).gh == gh
 
 
 def test_repo_path_is_relative_to_the_tracker_root(tmp_path):
