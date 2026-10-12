@@ -59,4 +59,4 @@ The authoritative list, with the reasons, is
    open a network connection.** Everything else stays pure and testable without a network.
 4. **GitHub first, then the file.** Always choose the failure mode that repairs itself.
 5. **Estimates are `Literal[1, 2, 3, 5]`.** 8 and 13 mean "split this" and are not representable.
-6. **Pace GitHub mutations** by `write_pause_seconds` (default 3). The secondary rate limit counts them.
+6. **Pace GitHub mutations** by `write_pause_seconds` (default 1). The secondary rate limit allows 80 content-generating requests a minute and 500 an hour.
