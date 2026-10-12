@@ -7,8 +7,8 @@
 ## 1. Scope
 
 **In:** `hours_per_point` calibration · the `TimeSource` interface · the `actual_time` snapshot in
-item files · snapshot on close in reconcile · `lanes time` · `lanes report time` · validation rules
-· index columns.
+item files · snapshot on close in reconcile · the post-merge hook · `lanes time` · `lanes report
+time` · validation rules · index columns.
 
 **Out:** any specific vendor adapter, and how a networked adapter authenticates. Both are settled
 when the first adapter is built. §10 records how each surveyed tracker would map onto the
@@ -46,7 +46,7 @@ class ActualTime(BaseModel):
     entries: int                 # how many closed entries were summed
     running: int = 0             # entries still open at fetch time, not counted
     source: str                  # time_source.kind that produced it
-    key: str                     # the tag queried, e.g. "gh:example-org/web-app#23"
+    key: str                     # the tag queried, e.g. "example-org/web-app#23"
     fetched_at: datetime
 
 class Item(BaseModel):
@@ -64,7 +64,7 @@ actual_time:
   seconds: 15300         # 4.25 h
   entries: 7
   source: timewarrior
-  key: "gh:example-org/web-app#23"
+  key: "example-org/web-app#23"
   fetched_at: 2026-10-11T18:04:00Z
 ```
 
@@ -77,11 +77,11 @@ for it, and `validate` does not check it against anything except its own shape.
 <a id="key"></a>
 ## 4. The correlation key
 
-A time entry belongs to an item when it carries the tag `gh:<owner>/<repo>#<n>`, built from
+A time entry belongs to an item when it carries the tag `<owner>/<repo>#<n>`, built from
 `config.repos[repo].gh` and `issue`. Whoever starts the timer adds the tag. With Timewarrior:
 
 ```
-timew start "gh:example-org/web-app#23"
+timew start "example-org/web-app#23"
 ```
 
 `lanes show N` prints the tag, so it can be copied rather than typed.
@@ -96,7 +96,7 @@ split a span between items, split it in the time tracker.
 # timekeeping/__init__.py
 @dataclass(frozen=True)
 class WorkKey:
-    tag: str                          # "gh:example-org/web-app#23"
+    tag: str                          # "example-org/web-app#23"
     repo: str                         # "example-org/web-app"
     issue: int
     branches: tuple[str, ...] = ()    # for adapters that match on git branch
@@ -153,6 +153,71 @@ time is counted per issue, not per PR.
 Reconcile collects the items that close in one run and queries the tracker once per item. All of
 the writes are local file writes, so nothing here touches GitHub's rate limits.
 
+<a id="post-merge"></a>
+### 6.1 The post-merge hook
+
+gh-lanes has no webhooks, so it notices a close only when reconcile runs. A `post-merge` git hook
+runs a dry reconcile at the moment the merged work arrives locally, which is usually `git pull` on
+`main` right after the PR merges. It reports what is pending, and the write happens later on a
+branch.
+
+```python
+#!/usr/bin/env python3
+# .git/hooks/post-merge, written by `lanes hooks install`
+import os
+import subprocess
+import sys
+
+LANES = '/Users/example/My Tools/bin/lanes'
+LANES_ROOT = '/Users/example/code/web-app'
+
+try:
+    subprocess.run(
+        [LANES, "reconcile", "--closed", "--quiet"],
+        env={**os.environ, "LANES_ROOT": LANES_ROOT},
+    )
+except OSError as exc:
+    print(f"lanes: post-merge hook could not run {LANES}: {exc}", file=sys.stderr)
+sys.exit(0)
+```
+
+- `--closed` limits reconcile to one case: a closed issue whose item is not `Done`. Applied, that
+  case moves the item to `Done` and takes the snapshot. The other reconcile cases (new issues with
+  no item file, orphans, reopened issues) are left for a full run, because they create files or
+  need a human decision.
+- `--closed` refreshes the index first, however recent it is. An index pulled a few minutes before
+  the PR merged is inside `stale_after_minutes` and would miss the close.
+- It writes nothing. The hook usually fires on `main`, and item-file changes go through a branch
+  like any other commit. Whoever pulled runs `lanes reconcile --closed --apply` on a branch, and
+  the snapshot is taken then.
+- It never fails the merge. Git ignores a `post-merge` exit status, and the hook exits 0 whatever
+  `lanes` returns. If `gh` or the time tracker is unreachable, `lanes` prints one line and the item
+  is picked up by the next run. If `lanes` itself is missing, the hook prints one line saying so.
+- `--quiet` prints only what is pending, e.g. `#23 closed → Done, 4.25 h from 7 entries`. It
+  prints nothing when nothing is pending.
+- It is installed in every configured repo. A PR merged in `billing-api` arrives when someone
+  pulls `billing-api`, and discovery walks up from the working directory, so a sibling repo at
+  `../billing-api` would never find `.tracker/`. Each hook sets `LANES_ROOT` to the absolute path
+  of the tracker root, so it works from any of them. A configured repo whose `path` is not a git
+  checkout on this machine is skipped with a message.
+- `lanes hooks install` writes this hook into each configured repo, and the pre-commit hook that
+  runs `lanes validate` into the repo that holds `.tracker/`. Both call `lanes` by the absolute
+  path of the executable that ran the install, because git hooks often run without the login
+  shell's `PATH` (GUI git clients, virtualenvs). After `lanes` moves, run the install again.
+- Both hooks are Python scripts. A path with a space or a shell metacharacter in it is valid,
+  and a shell script would split it or run it as syntax. The installer writes `LANES` and
+  `LANES_ROOT` with `repr()`, so they are Python string literals, and `subprocess.run` gets an
+  argument list, so no shell parses them. The shebang is `/usr/bin/env python3` because a shebang
+  can't hold a path with spaces either. The hook uses only the standard library, so any `python3`
+  on the hook's `PATH` will do.
+- The pre-commit hook has the same shape, but exits with `lanes validate`'s status so an error
+  blocks the commit.
+- It refuses to overwrite a hook it did not write, and prints the lines to add instead.
+
+Git runs `post-merge` after a merge or a fast-forward pull, and not after `git pull --rebase`. With
+`pull.rebase` set, the hook does not fire, and an explicit `lanes reconcile --closed --apply` covers
+the gap.
+
 <a id="commands"></a>
 ## 7. Commands
 
@@ -161,6 +226,8 @@ the writes are local file writes, so nothing here touches GitHub's rate limits.
 | `lanes time N` | Prints the stored snapshot next to a live total from the tracker, and the difference. Writes nothing |
 | `lanes time N --apply` | Takes a fresh snapshot and writes it. Works on open items too, for a mid-flight check that gets committed |
 | `lanes report time [--milestone M]` | Estimate against actuals, per item and in total (§8) |
+| `lanes reconcile --closed` | Reconcile limited to closed issues whose item is not `Done`. Dry by default; the post-merge hook runs it dry (§6.1) |
+| `lanes hooks install` | Writes the post-merge hook into every configured repo and the pre-commit hook into the repo holding `.tracker/` (§6.1) |
 
 `lanes time` and `lanes report time` take `--json`, like every other read.
 
@@ -204,7 +271,7 @@ Rules added to [design 0001 §9](0001-phase-1.md#validation):
 | `actual_time` only on an item with an issue | ERROR | `#N is a draft and has actual_time` |
 | Done item has a snapshot, when a `time_source` is configured | WARN | `#N is Done with no tracked time — run lanes time N --apply` |
 | No timer was running at snapshot | WARN | `#N had 1 timer running at snapshot; that time is not counted` |
-| Snapshot has entries | WARN | `#N is Done with 0 tracked entries for gh:owner/repo#N` |
+| Snapshot has entries | WARN | `#N is Done with 0 tracked entries for owner/repo#N` |
 
 <a id="adapters"></a>
 ## 10. How each tracker would implement `entries`
@@ -229,6 +296,15 @@ interface is known to fit more than one.
   entry carrying two item tags.
 - Reconcile is tested with a fake `TimeSource` covering three cases: it returns entries, it returns
   none, and it raises. The raise case asserts the item still reaches `Done`.
+- `reconcile --closed` gets a case showing it leaves a new issue with no item file untouched.
+- `lanes hooks install` is tested in temporary git repos: it writes both hooks with an absolute
+  path to `lanes`, writes the post-merge hook into a sibling configured repo with `LANES_ROOT`
+  set, skips a configured path that is not a git checkout, and refuses to overwrite a hook it did
+  not write.
+- The installed hooks are run against a stub `lanes` placed at a path with a space and shell
+  metacharacters in it, such as `my tools/$(touch pwned);/lanes`. The test asserts that the stub
+  ran with the expected arguments and `LANES_ROOT`, that `pwned` was not created, and that the
+  post-merge hook exits 0 when the stub fails or is missing.
 - Each adapter, when built, is tested against recorded tracker output committed as a fixture, with
   synthetic tags and times. No network in the suite.
 
