@@ -16,10 +16,8 @@ GitHub already owns identity, title, body, state, labels, assignee, comments, su
 and `issueDependenciesSummary`, with `addBlockedBy` and `removeBlockedBy` mutations, and
 `gh issue edit` has `--add-blocked-by` and `--remove-blocked-by` (verified against the API on `gh`
 2.102.0). Planning fields have no good home on GitHub. Project fields live on the project item
-rather than the issue, so an issue outside the project has no values and a transfer drops them
-([`H4`](../requirements.md)). Some native project fields are display-only
-([`H3`](../requirements.md)). Writing project fields one at a time trips GitHub's secondary rate
-limit ([`H2`](../requirements.md)).
+rather than the issue, so an issue outside the project has no values and a transfer drops them. Some native project
+fields are display-only. Writing project fields one at a time trips GitHub's secondary rate limit.
 
 [ADR 0001](0001-git-is-the-database.md) makes committed item files the source of truth for
 whatever the tracker owns.
@@ -49,8 +47,8 @@ The full field table is in [architecture §3](../architecture.md#ownership).
 
 - Two-way field sync. Every synced field can drift, and each one needs rules for which side wins.
   That is the sync-drift problem the tool exists to remove.
-- Planning fields in GitHub project fields. They attach to the project item, not the issue (`H4`),
-  some are display-only (`H3`), and batches of writes trip the secondary rate limit (`H2`).
+- Planning fields in GitHub project fields. They attach to the project item, not the issue,
+  some are display-only, and batches of writes trip the secondary rate limit.
 - A tracker-owned `depends_on` list in each item file, validated at write time and never pushed to
   GitHub.
 

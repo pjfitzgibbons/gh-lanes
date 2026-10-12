@@ -236,6 +236,6 @@ interface is known to fit more than one.
 
 | # | Requirement | How |
 |---|---|---|
-| C6 | Planned against actual, per item and per Act | `lanes report time`, in hours, per item and per milestone |
+| C6 | Planned against actual, per item and per milestone | `lanes report time`, in hours, per item and per milestone |
 | C9 | Tracked effort per item, calibrated against points | `actual_time` snapshot, `hours_per_point`, observed hours per point in the report |
 | G5 | History of tracking data | the snapshot is committed YAML; `git log -p` shows every re-snapshot |

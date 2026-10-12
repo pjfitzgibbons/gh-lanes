@@ -355,8 +355,8 @@ committed HTML file as source. `lanes serve` renders the same templates from a l
 4. GitHub first, then the file (§8.3).
 5. Estimates are `Literal[1, 2, 3, 5]`. 8 and 13 are refusal codes meaning "split this" and cannot
    be represented ([`B3`](requirements.md)).
-6. GitHub mutations are paced or batched, because the secondary rate limit counts them
-   ([`H2`](requirements.md)).
+6. GitHub mutations are paced by `write_pause_seconds` (default 3), because the secondary rate
+   limit counts them.
 7. An item has at most one lane ([`D4`](requirements.md)).
 8. A parent with children has no estimate ([`A5`](requirements.md)).
 9. A baseline is written only by freeze and never silently recomputed ([`C3`](requirements.md)).

@@ -57,13 +57,11 @@ is [ADR 0003](0003-disjoint-field-ownership.md).
 - `G5`: `git log -p .tracker/items/23.yml` shows who changed an estimate or baseline, when, and the
   commit that explains why.
 - `G4`: there is no database to operate. A corrupt index is deleted and rebuilt.
-- [`H2`](../requirements.md): bulk writes are file writes. Two dozen lane assignments are one
-  commit, with no API rate limit involved.
 - [`C3`, `C4`](../requirements.md): a frozen baseline is a value in a committed file, and
   re-baselining shows up as a diff with a commit message.
 - [`B3`](../requirements.md): validation runs at write time, in the tool's own code, so the split
   rule is enforced rather than linted afterwards.
-- Eight requirements come free with this choice
+- Several requirements come free with this choice
   ([design 0001, *Requirements coverage*](../design/0001-phase-1.md#requirements-coverage)).
 - Two sessions editing different items touch different files and merge cleanly. Two sessions
   editing the same item get an ordinary git conflict in a short YAML file.

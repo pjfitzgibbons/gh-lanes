@@ -9,7 +9,7 @@ Proposed.
 ## 2. Context
 
 Estimates are points ([`B1`](../requirements.md)), and planned-versus-actual variance is wanted per
-item and per Act ([`C6`](../requirements.md)). Points say how big an item is, but not what it cost.
+item and per milestone ([`C6`](../requirements.md)). Points say how big an item is, but not what it cost.
 Tracking and reporting on cost needs the time spent on each item.
 
 Open-source and commercial time trackers all record the same thing: spans of time carrying tags
