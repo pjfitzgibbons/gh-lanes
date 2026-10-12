@@ -1,0 +1,76 @@
+# The issue outline in docs/agents/technical-writer.md §3, with Steps, Expected and Actual in
+# place of Scope.
+name: Bug
+description: Something does the wrong thing.
+title: "[N] "
+labels: [bug]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What goes wrong, in one or two sentences.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps
+      description: The commands or actions that reproduce it, on synthetic data only.
+      placeholder: "1. "
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual
+      description: Include the exact error text.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance
+      description: Testable statements, one per bullet. The first is usually that the steps above produce the expected result.
+      placeholder: "- "
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Tests
+      description: The regression test that proves the fix.
+  - type: textarea
+    id: lenses
+    attributes:
+      label: Lenses
+      description: Mark a relevant lens [x] and add a note after the colon. Leave the rest [ ] with no note.
+      value: |
+        - [ ] L1 Security
+        - [ ] L2 Privacy and data
+        - [ ] L3 Reliability and failure
+        - [ ] L4 Performance and limits
+        - [ ] L5 Observability
+        - [ ] L6 Compatibility and migration
+        - [ ] L7 Usability and accessibility
+        - [ ] L8 Testability
+        - [ ] L9 Operations and cost
+        - [ ] L10 Docs impact
+        - [ ] L11 Invariants
+        - [ ] L12 Offline and concurrency
+  - type: textarea
+    id: planning
+    attributes:
+      label: Planning
+      description: "Estimate is 1, 2, 3 or 5; above 5, split the issue. Lanes: cli, engine, github, infra, model, web."
+      value: |
+        - Backlog ID:
+        - Estimate:
+        - Lane:
+        - Milestone:

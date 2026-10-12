@@ -185,7 +185,7 @@ Freeze (§6.4) writes baselines into item files. The time source feeds reconcile
 ### 6.1 Pull
 
 Pull is read-only, idempotent and needs no credential. Per repo it runs
-`gh issue list --repo <r> --state all --json number,id,title,state,labels,closedAt,blockedBy`,
+`gh issue list --repo <r> --state all --json number,id,title,state,stateReason,labels,closedAt,blockedBy`,
 which also returns the blocked-by edges, plus one `gh api graphql` query for sub-issue links. It
 writes only to the index, never to item files, and records `fetched_at`. Commands warn when the
 cache is stale, and `--offline` works entirely from it, since every tracker-owned field is local.

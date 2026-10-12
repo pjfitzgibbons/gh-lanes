@@ -16,6 +16,7 @@ htmlcov/
 .claude/settings.local.json
 CLAUDE.local.md
 .claude/logs/
+.claude/worktrees/
 
 # Editors / OS
 .DS_Store
