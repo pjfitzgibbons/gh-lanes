@@ -48,13 +48,15 @@ The first supported tracker is [Timewarrior](https://timewarrior.net/).
    lanes hooks install
    ```
 
-   This writes a `post-merge` hook, which reports closed issues after you pull, and a `pre-commit`
-   hook, which runs `lanes validate`. Both call `lanes` by its full path, because git hooks often
+   This writes a `post-merge` hook into every repo in `config.repos`, which reports closed issues
+   after you pull any of them, and a `pre-commit` hook in this repo, which runs `lanes validate`.
+   The hooks are small Python scripts that call `lanes` by its full path, because git hooks often
    run without your shell's `PATH`. If you reinstall or move `lanes`, run `lanes hooks install`
-   again.
+   again. A configured repo that isn't cloned at its `path` is skipped; run the install again
+   after you clone it.
 
-   If either hook already exists and gh-lanes didn't write it, the command leaves it alone and
-   prints the line for you to add yourself.
+   If a hook already exists and gh-lanes didn't write it, the command leaves it alone and prints
+   the lines for you to add yourself.
 
 ### Track time against an issue
 
@@ -133,7 +135,7 @@ Items with no saved total are listed, but left out of the totals.
 | Warning | What to do |
 |---|---|
 | `#N is Done with no tracked time` | Timewarrior couldn't be read when the item closed. Run `lanes time N --apply` |
-| `#N is Done with 0 tracked entries for owner/repo#N` | No entry had that tag. Check the tag in Timewarrior with `timew summary owner/repo#N` |
+| `#N is Done with 0 tracked entries for owner/repo#N` | No entry had that tag. Check the tag in Timewarrior with `timew summary :all owner/repo#N` |
 | `#N had 1 timer running at snapshot` | A timer was still running, and running timers are not counted. Stop it, then run `lanes time N --apply` |
 
 A transferred issue has a new tag, so entries tagged with the old one aren't found yet.
