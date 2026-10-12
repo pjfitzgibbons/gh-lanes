@@ -1,7 +1,7 @@
 # ADR 0001: Architecture for a bespoke GitHub-integrated tracker
 
 **Status:** proposed · **Inputs:** [`requirements.md`](requirements.md) ·
-[`alternatives-survey.md`](alternatives-survey.md)
+[`alternatives-survey.md`](alternatives-survey.md) · **Decisions:** [`adr/`](adr/)
 
 ## Definitions
 
@@ -13,8 +13,10 @@ The tool is `gh-lanes` (product: GH Lanes, CLI: `lanes`), in its own repo. Its *
 | **Tracker** | A local CLI plus optional localhost web UI that owns the *planning* layer over GitHub Issues. Not an issue tracker |
 | **Item** | One YAML file, `.tracker/items/<n>.yml`, holding the planning fields for one GitHub issue. Committed. The source of truth |
 | **Index** | `.tracker/.cache/index.db`, SQLite. A join of GitHub facts and item files. Derived, gitignored, rebuildable |
-| **GitHub-owned field** | title, body, state, labels, assignee, comments, sub-issue links, `closedAt`. Read, never stored in an item file |
-| **Tracker-owned field** | estimate, priority, status, ordinal, lane, `depends_on`, baseline, milestone. Written to item files, never pushed to GitHub |
+| **GitHub-owned field** | title, body, state, labels, assignee, comments, sub-issue links, dependencies (blocked-by), `closedAt`. Read, never stored in an item file |
+| **Tracker-owned field** | estimate, priority, status, ordinal, lane, baseline, milestone, actual time. Written to item files, never pushed to GitHub |
+| **Time source** | An external time tracker, read through one adapter per vendor. Optional ([ADR 0006](adr/0006-tracked-time.md)) |
+| **Snapshot** | The total tracked time for an item, written into its file when the issue closes, with the tracker and tag it came from |
 | **Lane** | A contention domain. Items in a lane touch the same files, so they run one at a time. Single-valued |
 | **Milestone** | Ours, not GitHub's. An Act or Interlude. Spans all four repos |
 | **Baseline** | A frozen start/finish pair, written once per milestone at its checkpoint, never recomputed |
@@ -39,21 +41,27 @@ So this is a replacement for Projects v2 that keeps Issues underneath, not a tra
 That reframing removes roughly half the work: no issue CRUD, no comments, no notifications,
 no auth, no multi-user, no permissions, no email.
 
+Replacing GitHub Issues as well would double the work and lose sub-issues, comments, PR linkage and
+`gh`. Forking an existing tool would mean owning someone else's data model; the
+[alternatives survey](alternatives-survey.md) records where each candidate fell short.
+
 ### What GitHub keeps owning
 
 Identity (`#23`), title, body, open/closed, labels, assignee, comments, sub-issue links,
-repository, and the commit and PR graph.
+dependencies (blocked-by / blocking), repository, and the commit and PR graph.
 
 ### What we own
 
-Estimate · priority · **status** (GitHub has only open/closed) · **ordinal** · lane · dependencies ·
-baseline start and finish · velocity · milestone membership *across repos* · derived actuals · the
+Estimate · priority · **status** (GitHub has only open/closed) · **ordinal** · lane ·
+baseline start and finish · velocity · hours per point · tracked-time snapshots · milestone
+membership *across repos* · derived actuals · the
 ready-queue computation · every view.
 
 ## Core decision: git is the database, SQLite is a disposable index
 
-The binding requirements are **G1** (tracking data is reviewable evidence: diffable, readable with
-no account) and **G3** (no new credential). Both are satisfied by one choice:
+Committed item files are the source of truth and SQLite is a disposable index
+([ADR 0001](adr/0001-git-is-the-database.md)). `.tracker/` lives in the repo being planned
+([ADR 0002](adr/0002-tracker-per-repo.md)).
 
 ```
 repo/.tracker/
@@ -67,49 +75,26 @@ repo/.tracker/
 join without re-parsing 60 YAML files per request. Drop it at any time and `lanes reindex`
 rebuilds it from the committed files.
 
-What this buys, requirement by requirement:
+What this buys, requirement by requirement, is in
+[ADR 0001, *Consequences*](adr/0001-git-is-the-database.md#consequences).
 
-- **G1 ✅ G2 ✅** — the data *is* committed YAML. Diffable, readable in a browser on GitHub, no
-  export step and no lock-in.
-- **G5 ✅ free** — change history on an estimate or a baseline is `git log -p .tracker/items/23.yml`.
-  Who changed it and when, signed, with the commit that explains why. Better than any surveyed
-  tool, and it is the requirement that matters most given where Act 6 goes.
-- **G4 ✅** — no database to back up, patch or validate. A corrupted index is a `rm` away.
-- **H2 ✅** — bulk writes are file writes. Twenty-four lane assignments is one commit.
-- **C3/C4 ✅** — a frozen baseline is a value in a committed file. Re-baselining shows up as a diff
-  with a commit message. The requirement that no free tool satisfied is nearly free
-  here.
-- **B3 ✅** — validation runs at write time, in our own code. That is server-side enforcement of the
-  >5-must-split rule, which no surveyed tool offers.
+## Platform
 
-🏛 This project's subject matter is audit trails and evidence. A tracker whose history is git
-history is the same argument applied to our own tooling: derived facts over typed assertions, and
-a record that an auditor could follow.
-
-## Platform recommendation: Python · FastAPI · HTMX · SQLite · shell out to `gh`
-
-| Layer | Choice | Why this and not the obvious alternative |
+| Layer | Choice | Why |
 |---|---|---|
-| Language | **Python 3.14+** (the floor is the one version CI tests) | Already this project's tooling language: the attribution hook, the `wp-publish` skill and the gantt generator are all Python. `uv 0.11.7` is installed. Adding a second toolchain to a docs repo costs more than it returns |
-| GitHub access | **subprocess to `gh`** | The decisive choice: `gh` is already authenticated, so G3 is satisfied natively with no PAT anywhere. PyGithub or httpx would each need a token, the exact cost that killed the auto-add Action |
-| Web | **FastAPI + Jinja2 + HTMX** | No build step, no npm, no bundler, server-rendered HTML. HTMX gives drag-and-drop and partial updates with attributes rather than a front-end app. For a single-user local tool, a React SPA is the wrong complexity |
-| Index | **SQLite via stdlib `sqlite3`** | No server, no driver, no ORM needed. It is a cache, so schema migrations are irrelevant: delete and reindex |
-| Validation | **Pydantic v2** | Schema for the YAML files, which is how `B3` becomes server-side instead of a lint |
-| CLI | **Typer** | One core library behind both front ends (see *CLI surface*). CI and hooks call the CLI |
-| Charts | **Generated HTML**: CSS Grid for bars and lanes, inline SVG for dependency arrows | No Mermaid, no JS charting library, no build step. See *Rendering* |
-| Packaging | **`uv run`**, no Docker | See below |
+| Language | Python 3.14+ (the floor is the one version CI tests) | [ADR 0004](adr/0004-python-no-docker.md) |
+| GitHub access | subprocess to `gh` | Requirement [`G3`](requirements.md) |
+| Web | FastAPI + Jinja2 + HTMX | |
+| Index | SQLite via stdlib `sqlite3` | [ADR 0001](adr/0001-git-is-the-database.md) |
+| Validation | Pydantic v2 | [ADR 0004](adr/0004-python-no-docker.md) |
+| CLI | Typer | [ADR 0004](adr/0004-python-no-docker.md) |
+| Time tracker access | one adapter per vendor behind a `TimeSource` interface | [ADR 0006](adr/0006-tracked-time.md) |
+| Charts | Generated HTML: CSS Grid for bars and lanes, inline SVG for dependency arrows | [ADR 0005](adr/0005-generated-html-charts.md) |
+| Packaging | `uv run`, no Docker on the run path; an optional `Dockerfile` for CI | [ADR 0004](adr/0004-python-no-docker.md) |
 
-### Why not Docker
-
-The app's entire job is to read and write a **git working tree** and to call `gh` with **the host's
-credentials**. Containerising means bind-mounting the repo, bind-mounting `~/.config/gh`, and
-reconciling uid/gid. That is more moving parts than `uv run lanes serve`, for a single-user tool
-bound to localhost. Docker's wins (isolation, reproducible deps, multi-service) do not apply: there is one
-service, `uv.lock` already pins deps, and isolation from the repo is the opposite of what we want.
-
-**Where Docker earns its place:** a `Dockerfile` for *CI* so the validation CLI runs hermetically,
-and as a reproducibility escape hatch if the thing is still wanted in three years. Ship it as
-optional, not as the run path.
+GitHub access goes through `gh` because it is already authenticated. A library such as PyGithub,
+Octokit or httpx would need a token, and a GitHub App would need a key and an install. The tool
+polls GitHub on demand; webhooks would need a public endpoint for a localhost tool.
 
 ## CLI surface
 
@@ -136,31 +121,29 @@ An item file holds identity and tracker-owned fields only. The schema and an exa
 
 | Field | Authority | Stored in YAML? | Stored in index? |
 |---|---|---|---|
-| title · body · state · labels · assignee · comments · sub-issue links · `closedAt` | **GitHub** | no | yes, as a cache |
-| estimate · priority · status · ordinal · lane · `depends_on` · baseline · our milestone | **Files** | yes | yes, as a cache |
+| title · body · state · labels · assignee · comments · sub-issue links · blocked-by · `closedAt` | **GitHub** | no | yes, as a cache |
+| estimate · priority · status · ordinal · lane · baseline · our milestone | **Files** | yes | yes, as a cache |
 | the `[N]` title prefix | GitHub, written by us | no | — |
+| actual time | the time tracker, snapshotted by us | yes | yes, as a cache |
 
 GitHub-owned fields are *never copied into a tracker file*. No
 copy means no divergence means nothing to reconcile. Tracker-owned fields are never pushed to
 GitHub, so GitHub cannot contradict them either. The two sets are disjoint, and the only overlap is
 one mirrored field in one direction.
 
-**`depends_on` stays tracker-owned, although GitHub has native dependencies.** The GraphQL
-`Issue` type has `blockedBy` / `blocking` / `issueDependenciesSummary`, with
-`addBlockedBy` / `removeBlockedBy` mutations, and `gh issue edit` has `--add-blocked-by` /
-`--add-blocking` (verified against the API on `gh` 2.102.0). GitHub's field is not read, written
-or reconciled. Revisit if experience shows the native field would serve better.
+Dependencies are GitHub's blocked-by relationships; the tool reads them and never writes them. Why
+ownership is split this way is in [ADR 0003](adr/0003-disjoint-field-ownership.md).
 
 ### Three operations
 
 ```
           ┌──────────────── GitHub (authoritative for identity) ───────────────┐
-          │  #23  title · state · labels · closedAt · sub-issues              │
+          │  #23  title · state · labels · closedAt · sub-issues · blocked-by │
           └───────────────────────────┬───────────────────────────────────────┘
                          (1) PULL     │ read-only, `gh`, no token
                                       ▼
    .tracker/items/23.yml ───────▶ .cache/index.db ◀─── (3) MIRROR, one field only
-   estimate · lane · deps          a JOIN of both,        `[N]` → issue title
+   estimate · lane · status        a JOIN of both,        `[N]` → issue title
    baseline · priority             nothing authoritative
    ▲                                      │
    │ (2) RECONCILE: file⇄issue membership │
@@ -168,10 +151,10 @@ or reconciled. Revisit if experience shows the native field would serve better.
 ```
 
 **1. Pull: read-only, idempotent, no credential.**
-`gh issue list --repo <r> --state all --json number,id,title,state,labels,closedAt` per repo, plus
-one `gh api graphql` for sub-issue links. Writes only to the index, never to YAML. Records
-`fetched_at`; commands warn when the cache is stale and `--offline` works entirely from it, since
-every tracker-owned field is local.
+`gh issue list --repo <r> --state all --json number,id,title,state,labels,closedAt,blockedBy` per
+repo, which also returns the blocked-by edges, plus one `gh api graphql` for sub-issue links. Writes only to the index, never to
+YAML. Records `fetched_at`; commands warn when the cache is stale and `--offline` works entirely
+from it, since every tracker-owned field is local.
 
 **2. Reconcile: the only operation that creates item files or changes them to match GitHub.** This
 is today's lint, promoted to a first-class step. Where a case needs a judgement, it *reports* rather
@@ -281,7 +264,7 @@ The details are in [design 0001, *Identity*](design/0001-phase-1.md#identity).
 |---|---|---|
 | Issue transferred to another repo | `issue:` goes stale, `node_id` still resolves | Reconcile rewrites `issue:` and `repo:`. No data lost |
 | Issue deleted | `node_id` resolves to nothing | Orphan report; file kept until a human decides |
-| Issue reopened | `closedAt` clears | Derived `actual_finish` is computed, never cached in YAML, so it just changes. Reconcile reports the item if it is still `Done` |
+| Issue reopened | `closedAt` clears | Derived `actual_finish` is computed, never cached in YAML, so it just changes. Reconcile reports the item if it is still `Done`. The `actual_time` snapshot stays until the next close replaces it |
 | Title edited on GitHub | `[N]` prefix may be dropped | Mirror drift detected, re-applied on next run |
 | Estimate edited in the file | GitHub title now stale | Mirror re-applies |
 | Offline | Pull fails | Everything tracker-owned still works; index serves stale reads with a warning |
@@ -303,94 +286,6 @@ The details are in [design 0001, *Identity*](design/0001-phase-1.md#identity).
 No JS charting library and no build step: Jinja templates emit HTML, CSS does the layout. Interaction
 in Phase 3 is HTMX attributes.
 
-### What this gains
-
-**Dependency arrows become possible.** Mermaid `gantt` sequences with `after` but **draws no
-arrows and has no critical path**, so a dependency affects bar position only and the reader cannot
-see *why*. Inline SVG over a CSS grid draws the edges, so the chart shows the real structure.
-
-Also: no 44-character label truncation, real tooltips, and a lane board and a timeline that are the
-same template with different column semantics.
-
-### What this costs
-
-⚠️ **GitHub does not render the charts.** Mermaid in a committed `.md` renders natively in the
-GitHub UI, so anyone with the link sees the chart with no tooling. An HTML file in a repo displays
-as **source**. So:
-
-- The charts are **build artifacts, not committed evidence**. They are generated into
-  `.tracker/out/` and gitignored.
-- **`G1` is unaffected**, because `G1` is about the tracking *data* (the item YAML), which is still
-  committed and diffable. It is the *rendering* that stops being viewable without running something.
-- If a chart is ever needed in a blog post or for someone with no checkout, it is a screenshot or a
-  published page, not a repo file.
-
-That is a real loss; the gain is a chart that shows dependencies at all.
-
-## Alternative: Go
-
-Go loses to Python on one axis only.
-
-| | Go | Python |
-|---|---|---|
-| Distribution | **Single static binary.** No venv, no interpreter version, runs in 2031 | `uv run`, needs Python + lockfile |
-| Reproducibility | **Strong**; matters for a public teaching artifact | Good, via `uv.lock` |
-| SQLite | `modernc.org/sqlite`, pure Go, **no cgo** | stdlib |
-| Web | `html/template` + HTMX; `templ` for typed templates | Jinja2 + HTMX |
-| YAML | `goccy/go-yaml` | ruamel.yaml, **round-trips comments** |
-| Validation | hand-written or `go-playground/validator` | **Pydantic v2, less code** |
-| Fit with repo | **New language in a Python/Markdown repo** | Already the tooling language |
-
-**Choose Go if** the tracker should outlive the project as a standalone artifact a reader can
-`go install` and run. The single-binary story is better, and "still runs in three years"
-matters for a blogged project.
-
-**Choose Python because** it is already here. Every existing tool in this repo is Python, `uv` is
-installed, Pydantic removes a chunk of validation code, and ruamel.yaml round-trips comments,
-which matters when humans hand-edit the item files, as they will.
-
-Rejected: TypeScript/Node (a build step and `node_modules` in a docs repo, for a tool with no rich
-front end), Rust (compile times and ceremony for a CRUD app), Ruby/PHP (no presence in this
-workspace).
-
----
-
-## Appendix: options rejected
-
-### Storage
-
-| Option | Why not |
-|---|---|
-| **Postgres** | Fails `G1` and `G4`. A service to run, back up and patch, holding the authoritative data outside git, for a single-user tool with ~60 rows |
-| **SQLite as source of truth** | Fails `G1`/`G5`. A binary blob is not diffable and not reviewable; `git log -p` on it says nothing |
-| **One big YAML file** | Every edit touches one file, so git history becomes useless for "who changed this estimate" and concurrent sessions conflict constantly |
-| **Issue body frontmatter** | Tempting, since it needs no new files, but it fights GitHub's editor, invites human mangling, and Backlog.md's test showed what silent frontmatter loss looks like |
-| **Git notes / orphan branch** | Technically elegant, practically invisible. Fails `G1`'s "readable by someone with no account" |
-| **JSON instead of YAML** | No comments. Item files will be hand-edited and the comments are the explanation |
-
-### GitHub access
-
-| Option | Why not |
-|---|---|
-| **PyGithub / Octokit / raw httpx** | Each needs a PAT, so it fails `G3`: the exact cost that killed the auto-add Action |
-| **GitHub App** | Worse: a key *and* an install, and apps cannot act on user-owned projects anyway |
-| **Webhooks** | Needs a public endpoint for a localhost tool. Poll on demand instead |
-
-### Web stack
-
-| Option | Why not |
-|---|---|
-| **React / Vue / Svelte SPA** | A build step, `node_modules`, and an API boundary, for a single-user local board. HTMX does drag-and-drop with attributes |
-| **Streamlit / Gradio** | Fast to start, fights you on layout, and a kanban board is exactly the layout they are bad at |
-| **TUI (Textual)** | Attractive and much cheaper, but a board is a 2-D spatial artifact and the chart needs to be shareable in a blog post |
-| **Static site generator** | Read-only by construction, so Phase 3 is impossible. Phase 2's `lanes render` is the useful part of this idea without the framework |
-| **Mermaid** | Renders free on GitHub, but draws no dependency arrows and has no critical path, which is what a dependency chart is for. Also truncates labels and has no tooltips |
-| **A JS chart library** (Chart.js, D3, Frappe Gantt) | A dependency and a build step for layout that CSS Grid already does. D3 would be justified only if the dependency graph needed force-directed layout |
-
-### Scope
-
-| Option | Why not |
-|---|---|
-| **Replace GitHub Issues too** | Doubles the work, loses sub-issues, comments, PR linkage and `gh`, and gains nothing the matrix asked for |
-| **Fork an existing tool** | Backlog.md would need an estimate field *and* a safe-frontmatter fix *and* lane grouping; Redmine would need a Ruby plugin. Owning a fork of someone else's data model is worse than owning 2,000 lines of our own |
-| **Two-way field sync** | Rejected on principle (see the boundary section). It is the sync-drift pathology this project exists to criticise |
+The charts are build artifacts in `.tracker/out/`, gitignored, because GitHub shows committed HTML
+as source. Why HTML and not Mermaid, and what that costs, is in
+[ADR 0005](adr/0005-generated-html-charts.md).

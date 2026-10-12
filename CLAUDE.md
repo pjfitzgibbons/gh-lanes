@@ -1,8 +1,8 @@
 # gh-lanes — repo instructions
 
 **GH Lanes** is a planning layer over GitHub Issues: a local CLI (later a localhost web UI) that
-owns estimates, lanes, dependencies, priorities and frozen baselines, while GitHub Issues keeps
-owning identity, state and labels. It is **not** an issue tracker.
+owns estimates, lanes, priorities and frozen baselines, while GitHub Issues keeps owning identity,
+state, labels and dependencies. It is **not** an issue tracker.
 
 Read `docs/design/0001-phase-1.md` before writing code. `docs/architecture.md` is the
 architecture; `docs/requirements.md` is the spec; `docs/alternatives-survey.md` records the eleven
@@ -51,11 +51,11 @@ Everything this repo needs is therefore stated here or committed in `.claude/`.
    the source of truth and are committed. The index is derived, gitignored, and rebuilt by
    `lanes reindex`.
 2. **Field ownership is disjoint.** GitHub-owned fields (title, body, state, labels, assignee,
-   `closedAt`, parent) are **never** copied into an item file. Tracker-owned fields (estimate,
-   priority, lane, `depends_on`, baseline, milestone) are **never** pushed to GitHub. The only
+   `closedAt`, parent, blocked-by) are **never** copied into an item file. Tracker-owned fields
+   (estimate, priority, lane, baseline, milestone, `actual_time`) are **never** pushed to GitHub. The only
    write-back is the `[N]` estimate prefix in an issue title.
-3. **`gh.py` and `git.py` are the only modules that spawn a process.** Everything else stays pure
-   and testable without a network.
+3. **`gh.py`, `git.py` and the `timekeeping/` adapters are the only modules that spawn a process or
+   open a network connection.** Everything else stays pure and testable without a network.
 4. **GitHub first, then the file.** An issue with no item file self-heals via reconcile; a file with
    no issue is an orphan needing a human. Always choose the failure mode that repairs itself.
 5. **Estimates are `Literal[1, 2, 3, 5]`.** 8 and 13 are refusal codes meaning "split this", and are
