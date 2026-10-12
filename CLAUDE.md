@@ -19,12 +19,16 @@ Everything this repo needs is therefore stated here or committed in `.claude/`.
 
 ## Hard rules
 
-- **Never add `Co-Authored-By`, `Claude-Session`, "Generated with Claude Code", or any other AI
-  attribution to a commit message, PR description, or document.** Peter is the sole author of
-  record. He owns every decision and must be able to explain and defend it. Claude drafts; Peter
-  reviews, understands, and signs. A `PreToolUse` hook enforces this —
-  `.claude/hooks/no_ai_attribution.py`, wired by `.claude/settings.json`, exit 2 blocks. **Memory is
-  context and can be ignored; a hook cannot.**
+- **An AI is never an author; it is recorded as the tool that generated the work.** This follows
+  the Linux kernel's rule for AI coding assistants
+  ([coding-assistants](https://docs.kernel.org/process/coding-assistants.html)). No
+  `Co-Authored-By`, `Signed-off-by`, `Claude-Session` or "Generated with" line may name an AI, in a
+  commit, a PR description or a document. Peter is the sole author of record: he reviews,
+  understands, signs and takes responsibility for every change. Every commit Claude makes ends with
+  `Assisted-by: AGENT_NAME:MODEL_VERSION`, for example `Assisted-by: Claude:claude-opus-5-5`, which
+  Claude Code adds through `attribution.commit` in `.claude/settings.json`. A `PreToolUse` hook
+  enforces both halves: `.claude/hooks/no_ai_attribution.py`, exit 2 blocks. **Memory is context
+  and can be ignored; a hook cannot.**
 - **Never commit secrets.** No tokens, keys or connection strings. This tool authenticates by
   shelling out to `gh`, which is already authenticated — **that is a design requirement (`G3`), not
   a convenience.** Do not introduce a library that needs a PAT.
