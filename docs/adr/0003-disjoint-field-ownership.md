@@ -33,7 +33,7 @@ Field ownership is disjoint.
 - Tracker-owned fields (estimate, priority, status, ordinal, lane, baseline, milestone, actual
   time) live in item files and are never pushed to GitHub.
 - The only write-back is the `[N]` estimate prefix in the issue title
-  ([`B2`](../requirements.md)), one field in one direction, applied by `lanes mirror`.
+  ([`B2`](../requirements.md)), one field in one direction, applied by `plan mirror`.
 
 Dependencies are GitHub-owned because GitHub has the feature natively, and a second dependency
 store in item files would duplicate it. The tool is read-only for them: pull reads `blockedBy` and
@@ -67,7 +67,7 @@ The full field table is in [architecture §3](../architecture.md#ownership).
 - The tool cannot reject a dependency at write time, because it never writes one. GitHub's
   `addBlockedBy` rejects a self-dependency and a cycle between two issues, but accepts a longer
   cycle such as A blocked by B, B by C and C by A (verified against the API on `gh` 2.102.0,
-  2026-10-11). `lanes validate` therefore checks the pulled graph for cycles
+  2026-10-11). `plan validate` therefore checks the pulled graph for cycles
   ([`E2`](../requirements.md)).
 - Dependency changes are not in git history with the other planning fields
   ([`G5`](../requirements.md)).

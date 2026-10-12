@@ -24,7 +24,7 @@ bars, inline SVG draws the dependency arrows over the grid, and tables are plain
 elements. Colour comes from CSS custom properties, with a shape or label alongside it so nothing
 depends on hue alone. Templates emit the HTML and CSS does the layout, with no build step.
 
-`lanes render` writes the output to `.tracker/out/`, and `lanes serve` serves the same templates.
+`plan render` writes the output to `.tracker/out/`, and `plan serve` serves the same templates.
 The technique table is in [architecture §11](../architecture.md#views).
 
 <a id="alternatives"></a>
@@ -39,7 +39,7 @@ The technique table is in [architecture §11](../architecture.md#views).
 - A terminal UI (Textual). Much cheaper, but a board is a two-dimensional spatial view, and the
   chart has to be shareable with people who do not run the tool.
 - A static site generator. It is read-only by construction, so the write UI planned for Phase 3
-  could not be built on it. `lanes render` keeps the useful part of the idea.
+  could not be built on it. `plan render` keeps the useful part of the idea.
 
 <a id="consequences"></a>
 ## 5. Consequences

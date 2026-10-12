@@ -26,7 +26,7 @@ The source of truth is one YAML file per item at `.tracker/items/<repo>/<n>.yml`
 `.tracker/milestones/<id>.yml`, committed in git. Nothing authoritative lives anywhere else.
 
 SQLite at `.tracker/.cache/index.db` is a derived index of those files joined with GitHub facts. It
-is gitignored, can be deleted at any time, and `lanes reindex` rebuilds it from the committed
+is gitignored, can be deleted at any time, and `plan reindex` rebuilds it from the committed
 files.
 
 Where `.tracker/` lives is [ADR 0002](0002-tracker-per-repo.md). Which fields an item file may hold

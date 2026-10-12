@@ -6,19 +6,19 @@
 <a id="purpose"></a>
 ## 1. Purpose
 
-GH Lanes is a planning layer over GitHub Issues. Issues already provide identity, bodies, state,
+GH Plan is a planning layer over GitHub Issues. Issues already provide identity, bodies, state,
 labels, sub-issues, an authenticated CLI and no new credential. What fails is the planning layer of
 GitHub Projects v2: fields live on the project item instead of the issue, there is no dependency
 field and no readable rank, some fields are display-only, a board cannot group by labels, and
 writing project fields trips a secondary rate limit at about twenty mutations.
 
-gh-lanes replaces Projects v2 and keeps Issues underneath. It has no issue CRUD, comments,
+gh-plan replaces Projects v2 and keeps Issues underneath. It has no issue CRUD, comments,
 notifications, auth, multi-user support, permissions or email. Replacing GitHub Issues as well
 would double the work and lose sub-issues, comments, PR linkage and `gh`. Forking an existing tool
 would mean owning someone else's data model; the [alternatives survey](alternatives-survey.md)
 records where each candidate fell short.
 
-The tool (`gh-lanes`, product GH Lanes, CLI `lanes`) lives in its own repo. Its data lives in
+The tool (`gh-plan`, product GH Plan, CLI `plan`) lives in its own repo. Its data lives in
 `.tracker/` in whichever repo is being planned ([ADR 0002](adr/0002-tracker-per-repo.md)).
 
 <a id="definitions"></a>
@@ -74,7 +74,7 @@ read-only for dependencies: people edit them in GitHub or with `gh issue edit --
 Estimate, priority, status, ordinal, lane, baseline, milestone and `actual_time`. These live in item
 files and are never pushed to GitHub. `status` is stored because GitHub has only open/closed.
 
-`actual_time` is the snapshot of tracked time. Only reconcile and `lanes time` write it, from the
+`actual_time` is the snapshot of tracked time. Only reconcile and `plan time` write it, from the
 configured time source, and nobody types it ([ADR 0006](adr/0006-tracked-time.md),
 [design 0002, *Data model*](design/0002-tracked-time.md#data-model)).
 
@@ -107,7 +107,7 @@ repo/.tracker/
 ```
 
 Nothing authoritative lives in the database. SQLite lets commands and the web UI sort, filter and
-join without re-parsing every item file. Drop it at any time and `lanes reindex` rebuilds it from
+join without re-parsing every item file. Drop it at any time and `plan reindex` rebuilds it from
 the committed files.
 
 One file per item and one per milestone means concurrent edits to different items merge cleanly,
@@ -122,7 +122,7 @@ and `git log -p` on one file is that item's history. The schemas are in
 ### 5.1 Core and front ends
 
 One core library has two front ends: the CLI and a web UI. Neither shells out to the other. The web
-UI is a server bound to localhost that renders the same templates as `lanes render`
+UI is a server bound to localhost that renders the same templates as `plan render`
 ([ADR 0005](adr/0005-generated-html-charts.md)); its stack is not chosen.
 
 Reads are implicit and writes are deliberate: pull runs automatically, while reconcile, freeze,
@@ -220,7 +220,7 @@ re-applies it. It is dry by default.
 Freeze computes start and finish dates for one milestone and writes them into its items as
 baselines. It is dry by default. A baseline is written once and never silently recomputed;
 `--rebaseline` replaces it deliberately, with a reason, and git records the change
-([`C3`, `C4`](requirements.md)). `lanes validate` runs before freeze, and an unestimated item fails
+([`C3`, `C4`](requirements.md)). `plan validate` runs before freeze, and an unestimated item fails
 it, because it would corrupt the baseline.
 
 <a id="identity"></a>
@@ -255,7 +255,7 @@ tracker gets its number and `node_id` from GitHub. No item file exists yet, and 
    `issue`, `node_id`, `repo`. It never guesses an estimate, lane or milestone.
 3. With no milestone, [`F1`](requirements.md) makes it `Icebox`. An untriaged issue is deferred
    until someone triages it.
-4. `lanes validate` reports it as `needs-triage`, a warning with a count. It becomes a failure only
+4. `plan validate` reports it as `needs-triage`, a warning with a count. It becomes a failure only
    when its milestone is being frozen.
 5. It has no `[N]` title prefix, because mirror only runs once an estimate exists.
 
@@ -266,16 +266,16 @@ report. It does not import them, because GitHub's milestones are not the tracker
 <a id="local-create"></a>
 ### 8.2 Created by the CLI or an agent
 
-The tracker cannot allocate an issue number; GitHub assigns it. By default `lanes new` works
+The tracker cannot allocate an issue number; GitHub assigns it. By default `plan new` works
 online: it creates the GitHub issue, then writes the item file, then commits. Offline,
-`lanes new --draft` writes a draft file with no issue, and `lanes push-drafts` later creates the
+`plan new --draft` writes a draft file with no issue, and `plan push-drafts` later creates the
 issue and renames the file, so git history keeps the draft's provenance. The command sequences are
 in [design 0001, *Commands*](design/0001-phase-1.md#commands).
 
 <a id="ordering-rule"></a>
 ### 8.3 GitHub first, then the file
 
-`lanes new` calls `gh` first and writes the file second. A crash between the two can land two ways:
+`plan new` calls `gh` first and writes the file second. A crash between the two can land two ways:
 
 | Crash leaves | Who notices | Cost |
 |---|---|---|
@@ -323,7 +323,7 @@ from one query over `Issue.parent` / `subIssues` / `subIssuesSummary`.
 | Crash between `gh issue create` and the file write | An issue with no item file | Reconcile creates the file (§8.3) |
 | Title edited on GitHub | `[N]` prefix may be dropped | Mirror detects the drift and re-applies it |
 | Estimate edited in the file | GitHub title is stale | Mirror re-applies |
-| Time source unreachable at close | No snapshot | Item still reaches `Done`; `validate` warns until `lanes time N --apply` |
+| Time source unreachable at close | No snapshot | Item still reaches `Done`; `validate` warns until `plan time N --apply` |
 | Offline | Pull fails | Everything tracker-owned still works; the index serves stale reads with a warning |
 | Two sessions edit different items | Two different files | Git merges cleanly, because there is one file per item |
 | Two sessions edit the same item | Ordinary git conflict | A short YAML conflict a human can read |
@@ -331,7 +331,7 @@ from one query over `Issue.parent` / `subIssues` / `subIssuesSummary`.
 <a id="views"></a>
 ## 11. Views
 
-The terminal views are `lanes next`, `ready`, `why` and `board`, each with `--json`
+The terminal views are `plan next`, `ready`, `why` and `board`, each with `--json`
 ([design 0001, *next, ready, why*](design/0001-phase-1.md#next-ready-why)).
 
 Every chart, graph and table is also generated HTML, with no Mermaid, no JS charting
@@ -345,13 +345,13 @@ library and no build step ([ADR 0005](adr/0005-generated-html-charts.md)):
 | Tables, roll-ups, ready queue | plain `<table>`, server-rendered |
 | Colour and status | CSS custom properties, with a shape or label as well as colour so nothing depends on hue alone |
 
-`lanes render` writes the HTML to `.tracker/out/`, which is gitignored, because GitHub shows a
-committed HTML file as source. `lanes serve` renders the same templates from a localhost server.
+`plan render` writes the HTML to `.tracker/out/`, which is gitignored, because GitHub shows a
+committed HTML file as source. `plan serve` renders the same templates from a localhost server.
 
 <a id="invariants"></a>
 ## 12. Invariants
 
-1. Git is the database; SQLite is a disposable index rebuilt by `lanes reindex`
+1. Git is the database; SQLite is a disposable index rebuilt by `plan reindex`
    ([ADR 0001](adr/0001-git-is-the-database.md)).
 2. Field ownership is disjoint, and the only write-back is the `[N]` title prefix (§3,
    [ADR 0003](adr/0003-disjoint-field-ownership.md)).

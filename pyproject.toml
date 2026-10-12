@@ -1,5 +1,5 @@
 [project]
-name = "gh-lanes"
+name = "gh-plan"
 version = "0.0.0"
 description = "A planning layer over GitHub Issues: estimates, lanes, dependencies and baselines."
 requires-python = ">=3.14"
@@ -10,7 +10,7 @@ requires = ["uv_build>=0.11.7,<0.14"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = "ghlanes"
+module-name = "ghplan"
 
 [tool.pytest.ini_options]
 # The hook's suite is plain unittest; pytest collects it so one command runs everything.
@@ -20,7 +20,7 @@ addopts = ["-ra", "--strict-markers", "--strict-config", "--cov", "--cov-report=
 xfail_strict = true
 
 [tool.coverage.run]
-source = ["ghlanes"]
+source = ["ghplan"]
 branch = true
 
 [tool.coverage.report]
