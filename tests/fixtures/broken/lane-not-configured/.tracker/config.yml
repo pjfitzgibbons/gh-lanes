@@ -1,6 +1,0 @@
-# #1 is in lane 'mobile', which config.lanes doesn't list.
-points_per_week: 5.0
-project_start: 2026-10-05
-repos:
-  web-app: { path: ".", gh: "example-org/web-app" }
-lanes: [api, frontend]

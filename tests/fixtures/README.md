@@ -20,7 +20,7 @@ In a real tracker `.cache/` is gitignored, by the `.tracker/.gitignore` that `pl
 
 ## valid/
 
-`valid/web-app/` passes every rule in design 0001 §9. The `billing-api` sibling (`path: "../billing-api"`) isn't on disk, because nothing that reads this tree opens a repo's working tree. The tree holds:
+`valid/web-app/` passes every rule in design 0001 §9. The `billing-api` sibling (`"path": "../billing-api"`) isn't on disk, because nothing that reads this tree opens a repo's working tree. The tree holds:
 
 - **Items in every status.** `web-app#1` and `#10` are Done, `#2` and `billing-api#2` are In Progress, `#4` is Blocked, `#5` is Icebox, and the rest are Todo.
 - **Closed issues of both kinds.** `#1` was closed as completed and `#10` as not planned.

@@ -2,12 +2,40 @@
 
 GitHub-owned facts (title, state, labels, parent, blocked-by) are absent on purpose: they are read
 by pull and cached in the index, never copied here. See design 0001 *Data model*.
+
+The files are JSON in one canonical form (design 0001 *File format*). Each model declares its fields
+in the order the file's keys are written, so `dumps` takes the key order from the model.
 """
 
+import json
 from datetime import date, datetime
-from typing import Literal, Self
+from pathlib import Path
+from typing import Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, ValidationInfo, field_validator, model_validator
+
+
+class FileFormatError(ValueError):
+    """A tracker file is not valid UTF-8 or not valid JSON. The message names the file."""
+
+
+def read_json(path: Path) -> Any:
+    """Parse a tracker file. A leading byte-order mark, which some editors add, is accepted."""
+    raw = path.read_bytes()
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError as e:
+        raise FileFormatError(f"{path}: not valid UTF-8: {e}") from e
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        raise FileFormatError(f"{path}: not valid JSON: {e}") from e
+
+
+def dumps(model: BaseModel) -> str:
+    """The canonical form: keys in field order, null fields left out, UTF-8 unescaped."""
+    data = model.model_dump(mode="json", exclude_none=True)
+    return json.dumps(data, indent=2, ensure_ascii=False) + "\n"
 
 Estimate = Literal[1, 2, 3, 5]  # 8 and 13 mean "split this"; they are not representable
 Priority = Literal["P0", "P1", "P2", "P3"]
@@ -33,10 +61,11 @@ class Baseline(_File):
 
 
 class Item(_File):
-    node_id: str | None = None  # GitHub global id, the real key. None only while draft
+    # Field order is the file's key order.
     issue: int | None = None  # human key; a cache that reconcile repairs. None only while draft
-    repo: str  # short name in config.repos
+    node_id: str | None = None  # GitHub global id, the real key. None only while draft
     draft: bool = False
+    repo: str  # short name in config.repos
     estimate: Estimate | None = None  # None = needs-triage, or a parent with children
     priority: Priority = "P2"
     status: Status = "Icebox"

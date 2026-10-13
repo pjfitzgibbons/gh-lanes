@@ -1,0 +1,10 @@
+{
+  "issue": 6,
+  "node_id": "I_example_webapp_6",
+  "draft": false,
+  "repo": "web-app",
+  "priority": "P2",
+  "status": "Todo",
+  "lane": "docs",
+  "milestone": "beta"
+}

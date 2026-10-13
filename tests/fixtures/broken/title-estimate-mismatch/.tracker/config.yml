@@ -1,6 +1,0 @@
-# #1's title says [3]; its estimate is 2.
-points_per_week: 5.0
-project_start: 2026-10-05
-repos:
-  web-app: { path: ".", gh: "example-org/web-app" }
-lanes: [api, frontend]

@@ -1,43 +1,49 @@
-"""model.py: the item, baseline and milestone schemas."""
+"""model.py: the item, baseline and milestone schemas, and the canonical JSON form."""
 
+import json
 from datetime import date
 
 import pytest
 from pydantic import ValidationError
-from ruamel.yaml import YAML
 
-from ghplan.model import Item, Milestone
+from ghplan.model import FileFormatError, Item, Milestone, dumps, read_json
 
-# The design 0001 *Item* example.
+# The design 0001 *Item* example, in the canonical form of design 0001 *File format*.
 ITEM_FILE = """\
-issue: 23
-node_id: I_kwDOA1b2c3
-repo: web-app
-estimate: 2
-priority: P0
-status: Todo
-ordinal: 100
-lane: frontend
-milestone: beta
-baseline:
-  start: 2026-10-13
-  finish: 2026-10-15
-  frozen_at: 2026-10-10T16:00:00Z
-  reason: "Beta checkpoint"
+{
+  "issue": 23,
+  "node_id": "I_kwDOA1b2c3",
+  "draft": false,
+  "repo": "web-app",
+  "estimate": 2,
+  "priority": "P0",
+  "status": "Todo",
+  "ordinal": 100,
+  "lane": "frontend",
+  "milestone": "beta",
+  "baseline": {
+    "start": "2026-10-13",
+    "finish": "2026-10-15",
+    "frozen_at": "2026-10-10T16:00:00Z",
+    "reason": "Beta checkpoint"
+  }
+}
 """
 
 MILESTONE_FILE = """\
-id: beta
-title: Beta
-exit_criterion: Every beta issue closed and the checkout flow demoed
-order: 200
+{
+  "id": "beta",
+  "title": "Beta",
+  "exit_criterion": "Every beta issue closed and the checkout flow demoed",
+  "order": 200
+}
 """
 
 IDENTITY = {"node_id": "I_kwDOA1b2c3", "issue": 23, "repo": "web-app"}
 
 
 def load(text: str):
-    return YAML(typ="safe", pure=True).load(text)
+    return json.loads(text)
 
 
 def test_loads_the_design_example():
@@ -98,3 +104,62 @@ def test_milestone_fields_are_required(missing):
     del data[missing]
     with pytest.raises(ValidationError, match=missing):
         Milestone.model_validate(data)
+
+
+# The canonical form
+
+
+def test_the_design_example_is_canonical():
+    assert dumps(Item.model_validate(load(ITEM_FILE))) == ITEM_FILE
+    assert dumps(Milestone.model_validate(load(MILESTONE_FILE))) == MILESTONE_FILE
+
+
+def test_keys_follow_the_field_order_whatever_the_input_order():
+    item = Item.model_validate(dict(reversed(list(load(ITEM_FILE).items()))))
+    assert list(json.loads(dumps(item))) == list(Item.model_fields)  # the example sets every field
+
+
+def test_only_null_fields_are_left_out():
+    """A default is still written, so equal items give identical files however they were built."""
+    assert json.loads(dumps(Item.model_validate(IDENTITY))) == {
+        "issue": 23, "node_id": "I_kwDOA1b2c3", "draft": False, "repo": "web-app",
+        "priority": "P2", "status": "Icebox",
+    }
+
+
+def test_a_utc_datetime_ends_in_z():
+    assert '"frozen_at": "2026-10-10T16:00:00Z"' in dumps(Item.model_validate(load(ITEM_FILE)))
+
+
+def test_non_ascii_is_written_as_itself():
+    m = Milestone.model_validate(load(MILESTONE_FILE) | {"title": "Café"})
+    assert '"title": "Café"' in dumps(m)
+
+
+# Reading a file
+
+
+def test_reads_utf8_without_escapes(tmp_path):
+    path = tmp_path / "beta.json"
+    path.write_text(MILESTONE_FILE.replace("Beta", "Café"), encoding="utf-8")
+    assert read_json(path)["title"] == "Café"
+
+
+def test_a_leading_byte_order_mark_is_accepted(tmp_path):
+    path = tmp_path / "beta.json"
+    path.write_bytes(b"\xef\xbb\xbf" + MILESTONE_FILE.encode())
+    m = Milestone.model_validate(read_json(path))
+    assert not dumps(m).startswith("\ufeff")
+
+
+@pytest.mark.parametrize(
+    ("content", "message"),
+    [(b'{"title": "Caf\xe9"}', "not valid UTF-8"), (b'{"title": ', "not valid JSON")],
+    ids=["latin-1", "truncated"],
+)
+def test_an_unreadable_file_is_reported_by_name(tmp_path, content, message):
+    path = tmp_path / "beta.json"
+    path.write_bytes(content)
+    with pytest.raises(FileFormatError, match=message) as e:
+        read_json(path)
+    assert str(path) in str(e.value)
