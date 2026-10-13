@@ -1,3 +1,28 @@
 # Read by ripgrep (VS Code search and quick open, Claude Code @-mentions), not by git.
 # Re-includes .tmp/ for searching and opening. .tmp/ stays gitignored, so it is never committed.
 !.tmp/
+
+# Claude Code's @ picker applies .ignore exclusions but not the negation above, so for it
+# .gitignore is switched off (respectGitignore: false in .claude/settings.local.json) and the
+# lines below hide what .gitignore hides, except .tmp/. Keep them in step with .gitignore.
+__pycache__/
+*.pyc
+.venv/
+dist/
+build/
+*.egg-info/
+.coverage
+htmlcov/
+.pytest_cache/
+.ruff_cache/
+.tracker/.cache/
+.tracker/out/
+.claude/settings.local.json
+CLAUDE.local.md
+.claude/logs/
+.claude/worktrees/
+.DS_Store
+.vscode/
+.idea/
+*.swp
+HANDOFF.md
