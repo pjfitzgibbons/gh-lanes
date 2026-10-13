@@ -1,0 +1,8 @@
+issue: 8
+node_id: I_example_webapp_8
+repo: web-app
+estimate: 2
+status: Todo
+ordinal: 200
+lane: frontend
+milestone: beta

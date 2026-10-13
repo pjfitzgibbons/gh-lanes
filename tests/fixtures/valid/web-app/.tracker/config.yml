@@ -1,0 +1,8 @@
+# Two repos: web-app holds the tracker; billing-api is its sibling. billing-api isn't on disk
+# here: nothing that reads this tree opens a repo's working tree.
+points_per_week: 5.0
+project_start: 2026-10-05
+repos:
+  web-app: { path: ".", gh: "example-org/web-app" }
+  billing-api: { path: "../billing-api", gh: "example-org/billing-api" }
+lanes: [api, frontend, docs]

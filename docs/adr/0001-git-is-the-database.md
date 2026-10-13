@@ -25,9 +25,7 @@ without re-parsing every item file on each request.
 The source of truth is one YAML file per item at `.tracker/items/<repo>/<n>.yml` and one per milestone at
 `.tracker/milestones/<id>.yml`, committed in git. Nothing authoritative lives anywhere else.
 
-SQLite at `.tracker/.cache/index.db` is a derived index of those files joined with GitHub facts. It
-is gitignored, can be deleted at any time, and `plan reindex` rebuilds it from the committed
-files.
+SQLite at `.tracker/.cache/index.db` is a derived index of those files joined with GitHub facts. The GitHub facts come from the last pull, cached beside it as `.tracker/.cache/gh/<repo>.json`. Both are gitignored and can be deleted at any time. `plan reindex` rebuilds the index offline from the committed files and the cached pull. If the cached pull is gone too, `reindex` builds from the item files alone, and the next pull restores the GitHub facts.
 
 Where `.tracker/` lives is [ADR 0002](0002-tracker-per-repo.md). Which fields an item file may hold
 is [ADR 0003](0003-disjoint-field-ownership.md).

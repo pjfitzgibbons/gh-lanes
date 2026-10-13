@@ -28,7 +28,7 @@ The tool (`gh-plan`, product GH Plan, CLI `plan`) lives in its own repo. Its dat
 |---|---|
 | Tracker | A local CLI plus an optional localhost web UI that owns the planning layer over GitHub Issues. Not an issue tracker |
 | Item | One YAML file, `.tracker/items/<repo>/<n>.yml`, holding the planning fields for one GitHub issue. `<repo>` is the repo's short name in `config.repos`. Committed. The source of truth |
-| Index | `.tracker/.cache/index.db`, SQLite. A join of GitHub facts and item files. Derived, gitignored, rebuildable |
+| Index | `.tracker/.cache/index.db`, SQLite, built from the item files and the cached pull. A join of GitHub facts and item files. Derived, gitignored, rebuildable |
 | GitHub-owned field | A field GitHub holds (§3.1). Read, never stored in an item file |
 | Tracker-owned field | A field the tracker holds (§3.2). Written to item files, never pushed to GitHub |
 | Time source | An external time tracker, read through one adapter per vendor. Optional ([ADR 0006](adr/0006-tracked-time.md)) |
@@ -99,16 +99,18 @@ Committed item files are the source of truth and SQLite is a disposable index
 
 ```
 repo/.tracker/
-  items/web-app/23.yml  ← one file per issue, under its repo's short name. The source of truth. Committed
-  milestones/beta.yml   ← one file per milestone, which may span repos
-  config.yml            ← points_per_week, hours_per_point, repos, lanes, time_source
-  .cache/index.db       ← SQLite. Derived, gitignored, deletable, rebuilt in seconds
-  out/                  ← generated HTML. Gitignored
+  items/web-app/23.yml   ← one file per issue, under its repo's short name. The source of truth. Committed
+  milestones/beta.yml    ← one file per milestone, which may span repos
+  config.yml             ← points_per_week, hours_per_point, repos, lanes, time_source
+  .cache/index.db        ← SQLite. Derived, gitignored, deletable, rebuilt in seconds
+  .cache/gh/web-app.json ← the last pull of one repo, exactly as gh returned it. Derived, gitignored
+  out/                   ← generated HTML. Gitignored
+  .gitignore             ← ignores .cache/ and out/. Written by plan init. Committed, so every tracker carries the rule
 ```
 
 Nothing authoritative lives in the database. SQLite lets commands and the web UI sort, filter and
 join without re-parsing every item file. Drop it at any time and `plan reindex` rebuilds it from
-the committed files.
+the committed files and the cached pull, without the network. If the cached pull is gone too, the next pull restores it.
 
 One file per item and one per milestone means concurrent edits to different items merge cleanly,
 and `git log -p` on one file is that item's history. The schemas are in
@@ -185,9 +187,8 @@ Freeze (§6.4) writes baselines into item files. The time source feeds reconcile
 ### 6.1 Pull
 
 Pull is read-only, idempotent and needs no credential. Per repo it runs
-`gh issue list --repo <r> --state all --json number,id,title,state,stateReason,labels,closedAt,blockedBy`,
-which also returns the blocked-by edges, plus one `gh api graphql` query for sub-issue links. It
-writes only to the index, never to item files, and records `fetched_at`. Commands warn when the
+`gh issue list --repo <r> --state all --json number,id,title,state,stateReason,closedAt,labels,blockedBy,parent,subIssuesSummary`,
+which also returns the blocked-by edges and the sub-issue links. It saves the output to `.tracker/.cache/gh/<r>.json`, replacing the previous file only once the new one is complete, then rebuilds the index from it. It never writes to item files. The file's modification time records when that repo was pulled. Commands warn when the
 cache is stale, and `--offline` works entirely from it, since every tracker-owned field is local.
 
 <a id="reconcile"></a>
