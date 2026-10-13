@@ -102,8 +102,12 @@ def test_valid_covers_what_the_ticket_lists():
     assert {i.status for i in items} == {"Icebox", "Todo", "In Progress", "Blocked", "Done"}
     assert any(i.draft for i in items)
     assert any(i.baseline for i in items)
-    assert any(i.estimate is None for i in items if i.status != "Icebox")
     issues = [r for rows in gh_rows(VALID).values() for r in rows]
+    # web-app#6 is the needs-triage item. #7 has no estimate either, but as a parent.
+    triage = next(i for i in items if (i.repo, i.issue) == ("web-app", 6))
+    assert triage.estimate is None and triage.status not in ("Icebox", "Done")
+    six = next(r for r in gh_rows(VALID)["web-app"] if r["number"] == 6)
+    assert six["subIssuesSummary"]["total"] == 0
     assert any(r["subIssuesSummary"]["total"] for r in issues)
     assert {r["stateReason"] for r in issues} == {"", "COMPLETED", "NOT_PLANNED"}
     orders = [Milestone.model_validate(yaml.load(p.read_text())).order
