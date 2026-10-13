@@ -22,8 +22,9 @@ without re-parsing every item file on each request.
 <a id="decision"></a>
 ## 3. Decision
 
-The source of truth is one YAML file per item at `.tracker/items/<repo>/<n>.yml` and one per milestone at
-`.tracker/milestones/<id>.yml`, committed in git. Nothing authoritative lives anywhere else.
+The source of truth is one file per item at `.tracker/items/<repo>/<n>.json` and one per milestone at
+`.tracker/milestones/<id>.json`, committed in git. Nothing authoritative lives anywhere else. The
+files are formatted JSON ([ADR 0007](0007-tracker-files-are-json.md)).
 
 SQLite at `.tracker/.cache/index.db` is a derived index of those files joined with GitHub facts. The GitHub facts come from the last pull, cached beside it as `.tracker/.cache/gh/<repo>.json`. Both are gitignored and can be deleted at any time. `plan reindex` rebuilds the index offline from the committed files and the cached pull. If the cached pull is gone too, `reindex` builds from the item files alone, and the next pull restores the GitHub facts.
 
@@ -37,22 +38,20 @@ is [ADR 0003](0003-disjoint-field-ownership.md).
   data outside git, for a single-user tool.
 - SQLite as the source of truth. It fails `G1` and `G5`. A binary file is not diffable or
   reviewable, and `git log -p` on it says nothing.
-- One big YAML file. Every edit touches the same file, so git history cannot answer "who changed
+- One file for all items. Every edit touches the same file, so git history cannot answer "who changed
   this estimate", and concurrent sessions conflict constantly.
 - Frontmatter in the issue body. It needs no new files, but it fights GitHub's editor and invites
   people to mangle it. The [alternatives survey](../alternatives-survey.md) records a tool that
   silently deleted unknown frontmatter on edit.
 - Git notes or an orphan branch. Both work technically and are invisible in practice, which fails
   `G1`'s "readable by someone with no account".
-- JSON instead of YAML. JSON has no comments, and item files are hand-edited with comments that
-  explain them.
 
 <a id="consequences"></a>
 ## 5. Consequences
 
-- `G1`, `G2`: the data is committed YAML, readable in a browser on GitHub, with no export step and
+- `G1`, `G2`: the data is committed JSON, readable in a browser on GitHub, with no export step and
   no lock-in.
-- `G5`: `git log -p .tracker/items/web-app/23.yml` shows who changed an estimate or baseline, when, and the
+- `G5`: `git log -p .tracker/items/web-app/23.json` shows who changed an estimate or baseline, when, and the
   commit that explains why.
 - `G4`: there is no database to operate. A corrupt index is deleted and rebuilt.
 - [`C3`, `C4`](../requirements.md): a frozen baseline is a value in a committed file, and
@@ -62,6 +61,6 @@ is [ADR 0003](0003-disjoint-field-ownership.md).
 - Several requirements come free with this choice
   ([design 0001, *Requirements coverage*](../design/0001-phase-1.md#requirements-coverage)).
 - Two sessions editing different items touch different files and merge cleanly. Two sessions
-  editing the same item get an ordinary git conflict in a short YAML file.
+  editing the same item get an ordinary git conflict in a short JSON file.
 - The index can be stale. Commands refresh it from GitHub when it is old, and `--offline` works
   from it alone, because every tracker-owned field is local.

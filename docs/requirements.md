@@ -90,6 +90,7 @@ traded · `COULD`: nice, and no tool gets credit for it over a MUST.
 | **G3** | MUST | **No new credential.** No PAT, API token or app secret stored in a repo, repo settings, or CI | A hard rule forbids secrets in any repo |
 | **G4** | SHOULD | Low operational burden: no other system that itself needs patching, backing up and validating | A self-hosted tracker is one more system to secure and maintain |
 | **G5** | SHOULD | Change history on tracking data: who changed an estimate or a baseline, and when | |
+| **G6** | SHOULD | **Tracking files are editable by hand**, in a text editor, with no tool installed | A person fixes or reviews a value where it lives. The tool is a convenience over the files, not the only way to change them |
 
 <a id="automation"></a>
 ## 9. Automation (H)

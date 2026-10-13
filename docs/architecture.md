@@ -27,7 +27,7 @@ The tool (`gh-plan`, product GH Plan, CLI `plan`) lives in its own repo. Its dat
 | Term | Definition |
 |---|---|
 | Tracker | A local CLI plus an optional localhost web UI that owns the planning layer over GitHub Issues. Not an issue tracker |
-| Item | One YAML file, `.tracker/items/<repo>/<n>.yml`, holding the planning fields for one GitHub issue. `<repo>` is the repo's short name in `config.repos`. Committed. The source of truth |
+| Item | One JSON file, `.tracker/items/<repo>/<n>.json`, holding the planning fields for one GitHub issue. `<repo>` is the repo's short name in `config.repos`. Committed. The source of truth |
 | Index | `.tracker/.cache/index.db`, SQLite, built from the item files and the cached pull. A join of GitHub facts and item files. Derived, gitignored, rebuildable |
 | GitHub-owned field | A field GitHub holds (§3.1). Read, never stored in an item file |
 | Tracker-owned field | A field the tracker holds (§3.2). Written to item files, never pushed to GitHub |
@@ -99,9 +99,10 @@ Committed item files are the source of truth and SQLite is a disposable index
 
 ```
 repo/.tracker/
-  items/web-app/23.yml   ← one file per issue, under its repo's short name. The source of truth. Committed
-  milestones/beta.yml    ← one file per milestone, which may span repos
-  config.yml             ← points_per_week, hours_per_point, repos, lanes, time_source
+  items/web-app/23.json  ← one file per issue, under its repo's short name. The source of truth. Committed
+  milestones/beta.json   ← one file per milestone, which may span repos
+  config.json            ← points_per_week, hours_per_point, repos, lanes, time_source
+  focus.json             ← the one fast-tracked feature, present only while a focus is set
   .cache/index.db        ← SQLite. Derived, gitignored, deletable, rebuilt in seconds
   .cache/gh/web-app.json ← the last pull of one repo, exactly as gh returned it. Derived, gitignored
   out/                   ← generated HTML. Gitignored
@@ -113,7 +114,9 @@ join without re-parsing every item file. Drop it at any time and `plan reindex` 
 the committed files and the cached pull, without the network. If the cached pull is gone too, the next pull restores it.
 
 One file per item and one per milestone means concurrent edits to different items merge cleanly,
-and `git log -p` on one file is that item's history. The schemas are in
+and `git log -p` on one file is that item's history. The committed files are formatted JSON, one
+key per line, in one canonical form that every tool write produces
+([ADR 0007](adr/0007-tracker-files-are-json.md)). The schemas are in
 [design 0001, *Data model*](design/0001-phase-1.md#data-model) and
 [design 0002, *Data model*](design/0002-tracked-time.md#data-model).
 
@@ -157,6 +160,7 @@ open a network connection. Everything else is pure and testable without a networ
 | Language | Python 3.14+ (the floor is the one version CI tests) | [ADR 0004](adr/0004-python-no-docker.md) |
 | GitHub access | subprocess to `gh` | requirement [`G3`](requirements.md) |
 | Time tracker access | one adapter per vendor behind `TimeSource` | [ADR 0006](adr/0006-tracked-time.md) |
+| Tracker files | formatted JSON via stdlib `json` | [ADR 0007](adr/0007-tracker-files-are-json.md) |
 | Index | SQLite via stdlib `sqlite3` | [ADR 0001](adr/0001-git-is-the-database.md) |
 | Validation | Pydantic v2 | [ADR 0004](adr/0004-python-no-docker.md) |
 | CLI | Typer | [ADR 0004](adr/0004-python-no-docker.md) |
@@ -173,7 +177,7 @@ open a network connection. Everything else is pure and testable without a networ
           └───────────────────────────┬───────────────────────────────────────┘
                          (1) PULL     │ read-only, `gh`, no token
                                       ▼
-   items/web-app/23.yml ────────▶ .cache/index.db ◀─── (3) MIRROR, one field only
+   items/web-app/23.json ───────▶ .cache/index.db ◀─── (3) MIRROR, one field only
    estimate · lane · status        a JOIN of both,        `[N]` → issue title
    baseline · priority             nothing authoritative
    ▲                                      │
@@ -228,7 +232,7 @@ it, because it would corrupt the baseline.
 ## 7. Identity
 
 `gh issue transfer` changes an issue's number and can change its repo, so `node_id` is the key and
-`issue:` is a cache. The file path, `items/<repo>/<n>.yml`, follows the cache so a person can find
+`issue:` is a cache. The file path, `items/<repo>/<n>.json`, follows the cache so a person can find
 the file. Two repos can both have a #23, so the repo is part of the path. Reconcile repairs a stale
 `issue:` and `repo:` from `node_id` and renames the file to match, and git records the rename
 ([design 0001, *Identity*](design/0001-phase-1.md#identity)).
@@ -252,8 +256,9 @@ An issue created in GitHub's web UI, on a phone, by a bot, or by someone who has
 tracker gets its number and `node_id` from GitHub. No item file exists yet, and nothing is lost:
 
 1. Pull brings it into the index like any other issue.
-2. Reconcile sees an issue with no item file and writes `.tracker/items/web-app/24.yml` with identity only:
-   `issue`, `node_id`, `repo`. It never guesses an estimate, lane or milestone.
+2. Reconcile sees an issue with no item file and writes `.tracker/items/web-app/24.json` with identity and defaults only:
+   `issue`, `node_id` and `repo`, then `"draft": false`, `"priority": "P2"` and
+   `"status": "Icebox"`. It never guesses an estimate, lane or milestone.
 3. With no milestone, [`F1`](requirements.md) makes it `Icebox`. An untriaged issue is deferred
    until someone triages it.
 4. `plan validate` reports it as `needs-triage`, a warning with a count. It becomes a failure only
@@ -320,14 +325,14 @@ from one query over `Issue.parent` / `subIssues` / `subIssuesSummary`.
 |---|---|---|
 | Issue transferred to another repo | `issue:` goes stale, `node_id` still resolves | Reconcile rewrites `issue:` and `repo:` and renames the file. No data lost |
 | Issue deleted | `node_id` resolves to nothing | Orphan report; file kept until a human decides |
-| Issue reopened | `closedAt` clears | Derived `actual_finish` is computed, never cached in YAML, so it changes with it. Reconcile reports the item if it is still `Done`. The `actual_time` snapshot stays until the next close replaces it |
+| Issue reopened | `closedAt` clears | Derived `actual_finish` is computed, never stored in an item file, so it changes with it. Reconcile reports the item if it is still `Done`. The `actual_time` snapshot stays until the next close replaces it |
 | Crash between `gh issue create` and the file write | An issue with no item file | Reconcile creates the file (§8.3) |
 | Title edited on GitHub | `[N]` prefix may be dropped | Mirror detects the drift and re-applies it |
 | Estimate edited in the file | GitHub title is stale | Mirror re-applies |
 | Time source unreachable at close | No snapshot | Item still reaches `Done`; `validate` warns until `plan time N --apply` |
 | Offline | Pull fails | Everything tracker-owned still works; the index serves stale reads with a warning |
 | Two sessions edit different items | Two different files | Git merges cleanly, because there is one file per item |
-| Two sessions edit the same item | Ordinary git conflict | A short YAML conflict a human can read |
+| Two sessions edit the same item | Ordinary git conflict | A short JSON conflict a human can read, because each key is on its own line |
 
 <a id="views"></a>
 ## 11. Views

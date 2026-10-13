@@ -17,14 +17,18 @@ interface.
 <a id="config"></a>
 ## 2. Config
 
-Two keys join `.tracker/config.yml` ([design 0001, *Config*](0001-phase-1.md#config)):
+Two keys join `.tracker/config.json` ([design 0001, *Config*](0001-phase-1.md#config)), shown here without the rest of the file:
 
-```yaml
-# .tracker/config.yml
-hours_per_point: 8.0     # one point = one working day. A project sizing a point as an hour sets 1.0
-time_source:             # absent = tracked time is off
-  kind: timewarrior      # selects the adapter module in src/ghplan/timekeeping/
+```json
+{
+  "hours_per_point": 8.0,
+  "time_source": {
+    "kind": "timewarrior"
+  }
+}
 ```
+
+`hours_per_point` defaults to 8.0, one point to one working day. A project sizing a point as an hour sets 1.0. With no `time_source`, tracked time is off. `time_source.kind` selects the adapter module in `src/ghplan/timekeeping/`.
 
 `hours_per_point` converts an estimate into hours for reporting. It is unrelated to
 `points_per_week`: velocity is elapsed calendar time ([`C1`](../requirements.md)), while
@@ -54,19 +58,32 @@ class Item(BaseModel):
     actual_time: ActualTime | None = None   # written by reconcile and `plan time --apply` only
 ```
 
-In an item file:
+In an item file, after every other key ([design 0001, *File format*](0001-phase-1.md#file-format)):
 
-```yaml
-# .tracker/items/web-app/23.yml
-estimate: 2
-status: Done
-actual_time:
-  seconds: 15300         # 4.25 h
-  entries: 7
-  source: timewarrior
-  key: "example-org/web-app#23"
-  fetched_at: 2026-10-11T18:04:00Z
+```json
+{
+  "issue": 23,
+  "node_id": "I_kwDOA1b2c3",
+  "draft": false,
+  "repo": "web-app",
+  "estimate": 2,
+  "priority": "P0",
+  "status": "Done",
+  "ordinal": 100,
+  "lane": "frontend",
+  "milestone": "beta",
+  "actual_time": {
+    "seconds": 15300,
+    "entries": 7,
+    "running": 0,
+    "source": "timewarrior",
+    "key": "example-org/web-app#23",
+    "fetched_at": "2026-10-11T18:04:00Z"
+  }
+}
 ```
+
+15300 seconds is 4.25 h.
 
 Estimated hours are never stored. They are `estimate × hours_per_point`, computed at report time,
 so changing the calibration rescales every report without touching an item file.
@@ -319,4 +336,4 @@ interface is known to fit more than one.
 |---|---|---|
 | C6 | Planned against actual, per item and per milestone | `plan report time`, in hours, per item and per milestone |
 | C9 | Tracked effort per item, calibrated against points | `actual_time` snapshot, `hours_per_point`, observed hours per point in the report |
-| G5 | History of tracking data | the snapshot is committed YAML; `git log -p` shows every re-snapshot |
+| G5 | History of tracking data | the snapshot is committed JSON; `git log -p` shows every re-snapshot |

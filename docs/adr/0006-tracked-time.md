@@ -23,7 +23,7 @@ treats as authoritative ([ADR 0001](0001-git-is-the-database.md),
 <a id="decision"></a>
 ## 3. Decision
 
-Estimates stay in points, and hours come from a calibration. `config.yml` carries
+Estimates stay in points, and hours come from a calibration. `config.json` carries
 `hours_per_point`, which defaults to 8 (one point is one working day). A project that sizes a point
 as an hour sets it to 1. An item's estimated hours are `estimate × hours_per_point`. No item has an
 hours estimate of its own.

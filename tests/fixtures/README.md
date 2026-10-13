@@ -28,14 +28,36 @@ In a real tracker `.cache/` is gitignored, by the `.tracker/.gitignore` that `pl
 - **A parent with children.** `#7` has two sub-issues, `#8` and `#9`, and no estimate.
 - **A blocker in the other repo.** `#4` is blocked by `billing-api#2`, which is open and in the same milestone.
 - **A baseline,** on `#2`.
-- **A draft,** `items/web-app/draft-01JA7Z3K8M.yml`.
+- **A draft,** `items/web-app/draft-01JA7Z3K8M.json`.
 - **Two milestones,** `alpha` (order 100) and `beta` (order 200).
 
 `plan next` here returns `billing-api#1`, the only P0.
 
 ## broken/
 
-Each directory is named for the one §9 rule it trips, and its `config.yml` opens with a comment saying how. Apart from that one fault, every tree is valid. Only two trees fail before any rule runs, because the schema itself rejects their items: `estimate-not-allowed` (estimate 8) and `status-not-in-schema` (status `In Review`).
+Each directory is named for the one §9 rule it trips. Apart from that one fault, every tree is valid. Tracker files carry no comments ([ADR 0007](../../docs/adr/0007-tracker-files-are-json.md)), so each tree's fault is listed here:
+
+| Tree | Fault |
+|---|---|
+| `blocked-by-cycle` | `#1` is blocked by `#2`, `#2` by `#3`, `#3` by `#1`. GitHub accepts a three-issue cycle |
+| `blocked-by-other-milestone` | `#2` (beta) is blocked by `#1` (alpha); milestone order already says so |
+| `blocked-without-blocker` | `#1` is Blocked but nothing blocks it |
+| `blocker-outside-repos` | `#1` is blocked by `example-org/shared-lib#7`, a repo not in `config.repos` |
+| `done-but-open` | `#1` is Done but its issue is open |
+| `estimate-not-allowed` | `#1` has estimate 8: a refusal code, not a size |
+| `lane-not-configured` | `#1` is in lane `mobile`, which `config.lanes` doesn't list |
+| `milestone-absent-not-icebox` | `#1` has no milestone but its status is Todo, not Icebox |
+| `milestone-file-missing` | `#1` is in milestone `gamma`, which has no `milestones/gamma.json` |
+| `milestone-order-duplicate` | `alpha` and `beta` share order 100 |
+| `needs-triage` | `#1` has an estimate but no lane |
+| `ordinal-duplicate` | `#1` and `#2` share ordinal 100 in lane `api` |
+| `orphan-item` | `items/web-app/2.json` names an issue GitHub doesn't return |
+| `parent-with-estimate` | `#1` has a child, `#2`, and still carries an estimate |
+| `status-not-in-schema` | `#1` has status `In Review`, which isn't one of the five |
+| `title-estimate-mismatch` | `#1`'s title says `[3]`; its estimate is 2 |
+| `untracked-issue` | `#2` is open on GitHub and has no item file |
+
+Only two trees fail before any rule runs, because the schema itself rejects their items: `estimate-not-allowed` (estimate 8) and `status-not-in-schema` (status `In Review`).
 
 The rule "baseline frozen for a closed milestone" has no message in §9, and milestones have no closed state, so it has no tree yet. It gets one when #15 defines it.
 

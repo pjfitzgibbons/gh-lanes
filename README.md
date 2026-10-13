@@ -1,7 +1,7 @@
 # gh-plan
 
 A planning layer over GitHub Issues. A local CLI, `plan`, keeps estimates, lanes, priorities and
-frozen baselines in YAML files committed to your repo. GitHub Issues keeps titles, state, labels and
+frozen baselines in JSON files committed to your repo. GitHub Issues keeps titles, state, labels and
 dependencies. It is not an issue tracker.
 
 The design is in [`docs/architecture.md`](docs/architecture.md) and
@@ -32,15 +32,16 @@ The first supported tracker is [Timewarrior](https://timewarrior.net/).
 2. Make sure `gh` is installed and logged in (`gh auth status`). gh-plan reaches GitHub only
    through `gh`, and never asks for a token of its own.
 
-3. Turn time tracking on in `.tracker/config.yml`:
+3. Turn time tracking on by adding two keys to `.tracker/config.json`:
 
-   ```yaml
-   hours_per_point: 8.0     # one point = one working day. Set 1.0 if a point is an hour
-   time_source:
-     kind: timewarrior
+   ```json
+   "hours_per_point": 8.0,
+   "time_source": {
+     "kind": "timewarrior"
+   }
    ```
 
-   With no `time_source` key, time tracking is off and nothing else changes.
+   `hours_per_point` of 8.0 makes one point one working day. Set 1.0 if a point is an hour. With no `time_source` key, time tracking is off and nothing else changes.
 
 4. Install the git hooks, from the repo that holds `.tracker/`:
 
@@ -97,7 +98,7 @@ branch you're on (`23-fix-login` → `example-org/web-app#23`).
    git commit -am "Close #23"
    ```
 
-   This marks the item `Done` and saves the total in `.tracker/items/web-app/23.yml`.
+   This marks the item `Done` and saves the total in `.tracker/items/web-app/23.json`.
    Merge the branch as usual.
 
 If you pull with `--rebase` (or have `pull.rebase` set), git skips the `post-merge` hook. Run
