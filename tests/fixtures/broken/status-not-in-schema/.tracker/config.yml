@@ -1,0 +1,6 @@
+# #1 has status 'In Review', which isn't one of the five.
+points_per_week: 5.0
+project_start: 2026-10-05
+repos:
+  web-app: { path: ".", gh: "example-org/web-app" }
+lanes: [api, frontend]
