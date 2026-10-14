@@ -3,7 +3,7 @@
 <a id="status"></a>
 ## 1. Status
 
-Proposed.
+Superseded by [ADR 0008](0008-file-native-items.md), which puts every field in the item file.
 
 <a id="context"></a>
 ## 2. Context
@@ -39,8 +39,6 @@ Dependencies are GitHub-owned because GitHub has the feature natively, and a sec
 store in item files would duplicate it. The tool is read-only for them: pull reads `blockedBy` and
 caches the edges in the index. People edit dependencies in GitHub or with
 `gh issue edit --add-blocked-by` and `--remove-blocked-by`.
-
-The full field table is in [architecture §3](../architecture.md#ownership).
 
 <a id="alternatives"></a>
 ## 4. Alternatives considered

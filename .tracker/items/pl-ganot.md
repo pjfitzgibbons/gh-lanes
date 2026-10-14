@@ -1,5 +1,6 @@
 ---
 title: "store.py: YAML and Markdown front matter, in one canonical form"
+type: feat
 status: Todo
 estimate: 3
 priority: P1

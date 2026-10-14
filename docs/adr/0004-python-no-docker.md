@@ -12,7 +12,8 @@ The tool is a single-user program on one machine. Its job is to read and write a
 and to call `gh` with the host's credentials. That call is a fixed constraint:
 [`G3`](../requirements.md) forbids a new credential, and `gh` is already authenticated.
 
-The committed tracker files are JSON ([ADR 0007](0007-tracker-files-are-yaml.md)). The schema
+The committed tracker files are YAML, and Markdown with YAML front matter
+([ADR 0007](0007-tracker-files-are-yaml.md)). The schema
 has to be validated at write time for [`B3`](../requirements.md), and the index is SQLite
 ([ADR 0001](0001-git-is-the-database.md)).
 
@@ -45,8 +46,8 @@ It runs with `uv run`, and `uv.lock` pins its dependencies. Docker is not on the
 ## 5. Consequences
 
 - A machine running the tool needs Python 3.14, `uv`, and an authenticated `gh`.
-- The libraries follow from the choice: Pydantic v2 for the schema, Typer for the CLI, and the
-  standard library's `json` for the tracker files and `sqlite3` for the index
+- The libraries follow from the choice: Pydantic v2 for the schema, Typer for the CLI, ruamel.yaml
+  for the tracker files, and the standard library's `sqlite3` for the index
   ([design 0001, *Layout*](../design/0001-phase-1.md#layout)).
 - `gh.py`, `git.py` and the `timekeeping/` adapters ([ADR 0006](0006-tracked-time.md)) are the only
   modules that spawn a process or open a network connection, so everything else is testable without

@@ -16,20 +16,20 @@ system to back up, patch and validate ([`G4`](../requirements.md)).
 A tracker whose history is git history gives the planning data the same audit trail as the code. A
 reviewer can follow derived facts and the commits that changed them.
 
-Commands and the web views still need to sort, filter and join planning data with GitHub facts
-without re-parsing every item file on each request.
+Commands and the web views still need to sort, filter and join planning data without re-parsing
+every item file on each request.
 
 <a id="decision"></a>
 ## 3. Decision
 
-The source of truth is one file per item at `.tracker/items/<repo>/<n>.json` and one per milestone at
-`.tracker/milestones/<id>.json`, committed in git. Nothing authoritative lives anywhere else. The
-files are formatted JSON ([ADR 0007](0007-tracker-files-are-yaml.md)).
+The source of truth is one file per item at `.tracker/items/<id>.md` and one per milestone at
+`.tracker/milestones/<id>.md`, committed in git. Nothing authoritative lives anywhere else. The
+files are Markdown with YAML front matter ([ADR 0007](0007-tracker-files-are-yaml.md)).
 
-SQLite at `.tracker/.cache/index.db` is a derived index of those files joined with GitHub facts. The GitHub facts come from the last pull, cached beside it as `.tracker/.cache/gh/<repo>.json`. Both are gitignored and can be deleted at any time. `plan reindex` rebuilds the index offline from the committed files and the cached pull. If the cached pull is gone too, `reindex` builds from the item files alone, and the next pull restores the GitHub facts.
+SQLite at `.tracker/.cache/index.db` is a derived index of those files and the local git history. It is gitignored and can be deleted at any time. `plan reindex` rebuilds it offline from the committed files and the history.
 
-Where `.tracker/` lives is [ADR 0002](0002-tracker-per-repo.md). Which fields an item file may hold
-is [ADR 0003](0003-disjoint-field-ownership.md).
+Where `.tracker/` lives is [ADR 0002](0002-tracker-per-repo.md). What an item file holds, and how
+git records its progress, is [ADR 0008](0008-file-native-items.md).
 
 <a id="alternatives"></a>
 ## 4. Alternatives considered
@@ -49,9 +49,9 @@ is [ADR 0003](0003-disjoint-field-ownership.md).
 <a id="consequences"></a>
 ## 5. Consequences
 
-- `G1`, `G2`: the data is committed JSON, readable in a browser on GitHub, with no export step and
-  no lock-in.
-- `G5`: `git log -p .tracker/items/web-app/23.json` shows who changed an estimate or baseline, when, and the
+- `G1`, `G2`: the data is committed YAML and Markdown, readable in a browser on GitHub, with no
+  export step and no lock-in.
+- `G5`: `git log -p .tracker/items/wa-tunep.md` shows who changed an estimate or baseline, when, and the
   commit that explains why.
 - `G4`: there is no database to operate. A corrupt index is deleted and rebuilt.
 - [`C3`, `C4`](../requirements.md): a frozen baseline is a value in a committed file, and
@@ -61,6 +61,6 @@ is [ADR 0003](0003-disjoint-field-ownership.md).
 - Several requirements come free with this choice
   ([design 0001, *Requirements coverage*](../design/0001-phase-1.md#requirements-coverage)).
 - Two sessions editing different items touch different files and merge cleanly. Two sessions
-  editing the same item get an ordinary git conflict in a short JSON file.
-- The index can be stale. Commands refresh it from GitHub when it is old, and `--offline` works
-  from it alone, because every tracker-owned field is local.
+  editing the same item get an ordinary git conflict in a short YAML file.
+- The index is built from files on disk and local git, so every command that reads it works
+  offline.

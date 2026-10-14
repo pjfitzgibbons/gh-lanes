@@ -1,20 +1,19 @@
 # gh-plan
 
-A planning layer over GitHub Issues. A local CLI, `plan`, keeps estimates, lanes, priorities and
-frozen baselines in JSON files committed to your repo. GitHub Issues keeps titles, state, labels and
-dependencies. It is not an issue tracker.
+A file-native tracker. A local CLI, `plan`, keeps each item's title, status, estimate, lane,
+priority, milestone and dependencies in a Markdown file with YAML front matter, committed in the
+repo the item belongs to. GitHub Issues isn't used. Pull requests are the one GitHub integration.
 
 The design is in [`docs/architecture.md`](docs/architecture.md) and
 [`docs/design/`](docs/design/).
 
-> **Status:** in development. The `plan` CLI and the time-tracker integration are not built yet
-> ([#61](https://github.com/pjfitzgibbons/gh-plan/issues/61), [#62](https://github.com/pjfitzgibbons/gh-plan/issues/62)). The instructions below describe how they are
-> designed to work.
+> **Status:** in development. The `plan` CLI and the time-tracker integration are not built yet.
+> The instructions below describe how they are designed to work.
 
 ## Time tracking
 
 gh-plan can compare each item's estimate with the time you actually spent on it. It reads time
-entries from an external time tracker, adds them up when the item's issue closes, and stores the
+entries from an external time tracker, adds them up when the item is set Done, and stores the
 total in the item file. `plan report time` then puts estimates and actuals side by side.
 
 gh-plan only reads from the time tracker. It never starts, stops or edits a timer.
@@ -32,13 +31,12 @@ The first supported tracker is [Timewarrior](https://timewarrior.net/).
 2. Make sure `gh` is installed and logged in (`gh auth status`). gh-plan reaches GitHub only
    through `gh`, and never asks for a token of its own.
 
-3. Turn time tracking on by adding two keys to `.tracker/config.json`:
+3. Turn time tracking on by adding two keys to `.tracker/config.yml`:
 
-   ```json
-   "hours_per_point": 8.0,
-   "time_source": {
-     "kind": "timewarrior"
-   }
+   ```yaml
+   hours_per_point: 8.0
+   time_source:
+     kind: timewarrior
    ```
 
    `hours_per_point` of 8.0 makes one point one working day. Set 1.0 if a point is an hour. With no `time_source` key, time tracking is off and nothing else changes.
@@ -49,70 +47,67 @@ The first supported tracker is [Timewarrior](https://timewarrior.net/).
    plan hooks install
    ```
 
-   This writes a `post-merge` hook into every repo in `config.repos`, which reports closed issues
-   after you pull any of them, and a `pre-commit` hook in this repo, which runs `plan validate`.
+   This writes three hooks into every repo of the plan: `post-checkout`, which starts an item when
+   you create its branch; `post-merge`, which reports Done items with no saved time after you pull;
+   and `pre-commit`, which runs `plan validate`.
    The hooks are small Python scripts that call `plan` by its full path, because git hooks often
    run without your shell's `PATH`. If you reinstall or move `plan`, run `plan hooks install`
-   again. A configured repo that isn't cloned at its `path` is skipped; run the install again
-   after you clone it.
+   again. A member repo that isn't cloned at its path is skipped; run the install again after you
+   clone it.
 
    If a hook already exists and gh-plan didn't write it, the command leaves it alone and prints
    the lines for you to add yourself.
 
-### Track time against an issue
+### Track time against an item
 
-A time entry counts toward an issue when it has the tag `<owner>/<repo>#<number>`:
+A time entry counts toward an item when it has the item's ID as a tag:
 
 ```sh
-timew start "example-org/web-app#23"
+timew start wa-tunep
 # ... work ...
 timew stop
 ```
 
-`plan show 23` prints the tag, so you can copy it instead of typing it. If more than one
-configured repo has an issue #23, name the repo: `plan show web-app#23`. The same goes for every
-command below that takes an issue number.
+The prefix (`wa`) belongs to one repo, so an ID tags one item wherever the timer runs.
 
-An entry can have other tags as well. An entry with two issue tags counts in full toward both
-issues, so if you want to split time between issues, split the entry in Timewarrior.
+An entry can have other tags as well. An entry with two item tags counts in full toward both
+items, so if you want to split time between items, split the entry in Timewarrior.
 
 Anything that writes this tag works, including a script that starts Timewarrior for you from the
-branch you're on (`23-fix-login` → `example-org/web-app#23`).
+branch you're on (`feat/wa-tunep-retry` → `wa-tunep`).
 
-### When an issue closes
+### When an item is Done
 
-1. Merge the PR with `Closes #23` in its description. GitHub closes the issue.
-2. Pull `main`. The `post-merge` hook checks for closed issues and prints what is pending, for
-   example:
-
-   ```
-   #23 closed → Done, 4.25 h from 7 entries
-   ```
-
-   The hook doesn't change any files.
-3. On a branch, record the time:
+1. On the item's branch, before it merges, set it Done:
 
    ```sh
-   git switch -c tracker/close-23
-   plan reconcile --closed --apply
-   git commit -am "Close #23"
+   plan set wa-tunep --status Done
    ```
 
-   This marks the item `Done` and saves the total in `.tracker/items/web-app/23.json`.
-   Merge the branch as usual.
+   This writes `status: Done` and the total from Timewarrior into `.tracker/items/wa-tunep.md` in
+   one write. Commit it with the work, and it reaches the default branch with the merge.
+2. If the item was set Done without a total, by hand in an editor or while Timewarrior couldn't
+   be read, the `post-merge` hook reports it when you pull the merge, for example:
+
+   ```
+   wa-tunep is Done with no snapshot · 4.25 h from 7 entries
+   ```
+
+   The hook doesn't change any files. On a branch, run `plan time wa-tunep --apply` and commit it.
 
 If you pull with `--rebase` (or have `pull.rebase` set), git skips the `post-merge` hook. Run
-`plan reconcile --closed` yourself to see what is pending.
+`plan time --missing` yourself to see what is pending.
 
 ### Check an item's time
 
 ```sh
-plan time 23             # saved total, the current total from Timewarrior, and the difference
-plan time 23 --apply     # replace the saved total with the current one
+plan time wa-tunep            # saved total, the current total from Timewarrior, and the difference
+plan time wa-tunep --apply    # replace the saved total with the current one
+plan time --missing           # Done items with no saved total, and what each would get
 ```
 
-`plan time N --apply` also works on an open issue, for a mid-way check you can commit. Time logged
-after an issue closed is only counted once you run it.
+`plan time <id> --apply` also works on an item that isn't Done yet, for a mid-way check you can
+commit. Time logged after an item is Done is only counted once you run it.
 
 ### Report
 
@@ -135,8 +130,6 @@ Items with no saved total are listed, but left out of the totals.
 
 | Warning | What to do |
 |---|---|
-| `#N is Done with no tracked time` | Timewarrior couldn't be read when the item closed. Run `plan time N --apply` |
-| `#N is Done with 0 tracked entries for owner/repo#N` | No entry had that tag. Check the tag in Timewarrior with `timew summary :all owner/repo#N` |
-| `#N had 1 timer running at snapshot` | A timer was still running, and running timers are not counted. Stop it, then run `plan time N --apply` |
-
-A transferred issue has a new tag, so entries tagged with the old one aren't found yet.
+| `wa-tunep is Done with no tracked time` | Timewarrior couldn't be read when the item was set Done. Run `plan time wa-tunep --apply` |
+| `wa-tunep is Done with 0 tracked entries tagged wa-tunep` | No entry had that tag. Check the tag in Timewarrior with `timew summary :all wa-tunep` |
+| `wa-tunep had 1 timer running at snapshot` | A timer was still running, and running timers are not counted. Stop it, then run `plan time wa-tunep --apply` |

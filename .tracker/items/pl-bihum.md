@@ -1,5 +1,6 @@
 ---
 title: "Dogfood: gh-plan's own work in .tracker/items"
+type: chore
 status: Done
 estimate: 1
 priority: P1
@@ -7,7 +8,6 @@ ordinal: 300
 lane: infra
 milestone: bootstrap
 started: 2026-10-14T13:39:55Z
-started_via: hand
 ---
 ### Summary
 gh-plan plans its own work in the format it is moving to, before the tool can read it. This ticket keeps the bootstrap tracker by hand: `.tracker/config.yml` with the prefix `pl`, the `bootstrap` milestone, and one Markdown file per item under `.tracker/items/`. It replaces #25, whose JSON tracker on `feat/25-dogfood-tracker` is not merged.
@@ -17,7 +17,7 @@ gh-plan plans its own work in the format it is moving to, before the tool can re
 - `.tracker/milestones/bootstrap.md`, its exit criterion in the body.
 - `.tracker/.gitignore` ignoring `.cache/` and `out/`, so the tracker carries the rule wherever it goes (architecture §4).
 - `.tracker/items/pl-<word>.md` for the bootstrap work, front matter as ADR 0008 lists it and the body in the issue outline. IDs are drawn by hand from the CVCVC alphabet until the generator exists.
-- `started` and `started_via: hand` are set by hand on items already under way.
+- `started` is set by hand on items already under way.
 - Out of scope: reading these files with the tool (the schema and store tickets), and importing the GitHub backlog.
 
 ### Acceptance

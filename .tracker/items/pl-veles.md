@@ -1,5 +1,6 @@
 ---
 title: Import gh-plan's open GitHub issues into .tracker/items, then close them
+type: chore
 status: Todo
 estimate: 3
 priority: P1
@@ -16,7 +17,7 @@ Move gh-plan's open GitHub issues into item files once, then close them on GitHu
 
 ### Scope
 - Triage first: issues that only make sense with GitHub Issues as the tracker are closed as superseded by ADR 0008, not imported. Candidates: #11 pull, #14 auto-pull, #17 reconcile, #21 batch title writes, #22 mirror, #37 transfer and deletion, #38 offline drafts, #39 to #45 derived actuals from issues, #62's reconcile half. The list is reviewed before anything closes.
-- Import the rest: title, body, estimate (from the `[N]` prefix), labels, parent and blocked-by, with `priority`, `ordinal`, `lane` and `milestone` from #25's JSON tracker where it has them.
+- Import the rest: title, body, `type` (`bug` for an issue labelled `bug`, otherwise `feat`), estimate (from the `[N]` prefix), labels, parent and blocked-by, with `priority`, `ordinal`, `lane` and `milestone` from #25's JSON tracker where it has them.
 - Close each imported issue with a comment naming its new ID and file.
 - Writes to GitHub are paced, and Peter runs them.
 
