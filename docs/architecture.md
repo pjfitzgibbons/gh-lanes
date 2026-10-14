@@ -218,7 +218,7 @@ the tracker, including the finish, reaches it through a pull request, like code
 ### 7.1 Start
 
 Two signals start an item: a skill calls `plan start <id>`, or a `post-checkout` hook sees a branch
-name carrying an ID. The branch is named for the item, `<type>/<id>-<slug>`, in the item's own repo.
+name carrying an ID. The branch is named for the item, `<type>/<id>-<slug>`, in the item's own repo, and `<type>` follows the item's `type`: `feat`, `fix` for a bug, or `chore`.
 The tool sets `status: In Progress` and `started` (UTC, to the second), regenerates `ready.yml`,
 commits both to the default branch as `plan: start <id>`, and pushes. Offline, the commit is kept
 locally and pushed by the next `plan sync` or `git push`.

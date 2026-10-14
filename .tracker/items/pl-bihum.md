@@ -1,5 +1,6 @@
 ---
 title: "Dogfood: gh-plan's own work in .tracker/items"
+type: chore
 status: Done
 estimate: 1
 priority: P1

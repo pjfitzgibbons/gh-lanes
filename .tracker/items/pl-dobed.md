@@ -1,5 +1,6 @@
 ---
 title: Docs follow the file-native ADRs
+type: chore
 status: Done
 estimate: 5
 priority: P1
@@ -26,6 +27,7 @@ ADRs 0007 and 0008 make gh-plan its own tracker: items are Markdown files with Y
   - 0008: `started_via` goes, since the commit that sets `started` already records how; `plan stop` keeps `started`; references to invariants by number become names.
 - **`docs/requirements.md` `D6`** drops `started_via` from the in-flight section.
 - **`docs/agents/technical-writer.md` §3** describes an item file instead of a GitHub issue: no `[N]` title prefix, no *Planning* section, and `blocked_by` in the front matter. The issue forms in `.github/ISSUE_TEMPLATE/` go.
+- **An item `type`:** `feat`, `bug` or `chore`, required, after `title`. It names the branch's `<type>`, with `fix` for a bug; `plan new --type` and `plan set --type` write it, and `validate` warns when a branch's `<type>` disagrees. Every item in `.tracker/items/` gets one.
 - **Item files:** `started_via` comes out of pl-sarov and pl-bihum, and out of pl-kozot's field order. pl-dafip's `plan stop` keeps `started`.
 - **`README.md`** describes a file-native tracker.
 - **`tests/fixtures/README.md`** names the YAML and Markdown files. The fixture trees themselves change with the converter.

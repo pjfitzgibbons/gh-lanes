@@ -1,5 +1,6 @@
 ---
 title: "plan start and plan stop: the curated start commit and the post-checkout hook"
+type: feat
 status: Todo
 estimate: 5
 priority: P2

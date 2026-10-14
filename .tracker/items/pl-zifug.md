@@ -1,5 +1,6 @@
 ---
 title: tt, worktask and gh-issues work from pl- IDs
+type: chore
 status: Todo
 estimate: 2
 priority: P1
@@ -11,8 +12,8 @@ milestone: bootstrap
 Time tagging and the work skills read GitHub issue numbers from branch names. With `pl-<word>` IDs and `<type>/<id>-<slug>` branches, tt logs nothing and `worktask` cannot pick up an item. This ticket moves them to the new IDs, so dogfooding records time.
 
 ### Scope
-- tt (in `~/programming/tempotag`): parse `<type>/<prefix>-<word>-<slug>` and tag entries with the item ID, as ADR 0006 now says. The tt change is a child issue in tempotag's own tracker.
-- `worktask`: pick up `pl-<word>`, create `<type>/<id>-<slug>` in a worktree, and call `plan start` once it exists.
+- tt (in `~/programming/tempotag`): parse `<type>/<prefix>-<word>-<slug>`, where `<type>` is `feat`, `fix` or `chore`, and tag entries with the item ID, as ADR 0006 now says. The tt change is a child issue in tempotag's own tracker.
+- `worktask`: pick up `pl-<word>`, create `<type>/<id>-<slug>` in a worktree, with `<type>` from the item's `type` (`fix` for a bug), and call `plan start` once it exists.
 - `gh-issues` and the `plan` stand-in skill: drafting and next-ID steps write item files instead of GitHub issues.
 - Out of scope: `plan start` itself (pl-dafip).
 

@@ -1,5 +1,6 @@
 ---
 title: Fixture trees and a converter from JSON trackers
+type: feat
 status: Todo
 estimate: 3
 priority: P2
@@ -15,7 +16,7 @@ blocked_by:
 Convert the synthetic fixture trees under `tests/fixtures/` to the new layout, and write the one-time converter that moves a JSON tracker to YAML and Markdown.
 
 ### Scope
-- `plan convert` (or a one-off script) turns `config.json` into `config.yml`, each milestone into `milestones/<id>.md`, and each item into `items/<id>.md` with a drawn ID. Fields GitHub owned are left for the import (pl-veles).
+- `plan convert` (or a one-off script) turns `config.json` into `config.yml`, each milestone into `milestones/<id>.md`, and each item into `items/<id>.md` with a drawn ID and `type: feat`. Fields GitHub owned are left for the import (pl-veles).
 - `.cache/gh/` drops out of every fixture tree.
 - `broken/` trees named for rules that no longer exist (`done-but-open`, `blocker-outside-repos`) are removed or renamed for the rule that replaces them.
 - `broken/` gains a tree for each rule design 0001 §9 adds, and `test_every_section_9_rule_with_a_message_has_a_tree` loses its `xfail` mark.

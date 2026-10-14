@@ -1,5 +1,6 @@
 ---
 title: "IDs: draw a word, keep the blocklist, resolve what is typed"
+type: feat
 status: Todo
 estimate: 2
 priority: P1

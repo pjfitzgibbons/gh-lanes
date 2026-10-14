@@ -1,5 +1,6 @@
 ---
 title: "Items are file-native: ADRs 0007 and 0008, requirements"
+type: chore
 status: Done
 estimate: 3
 priority: P1

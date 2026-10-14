@@ -75,7 +75,8 @@ GitHub Issues is not used.
 - A milestone named on an item is looked up in the item's own repo first, then in the plan that
   lists the repo as a member. A repo can keep milestones of its own beside that plan's.
 - Work on an item happens on a branch named for it, `<type>/<id>-<slug>`, such as
-  `feat/pl-bakor-json-files`, in the item's own repo.
+  `feat/pl-bakor-json-files`, in the item's own repo. An item's `type` field is `feat`, `bug` or
+  `chore`, and names the branch's `<type>`, with `fix` for a bug.
 - The default branch carries the tracker's current state. Whatever it says about an item is
   the item's status, and the tool commits to it directly when work starts or stops. Every other
   change to the tracker reaches it through a pull request, like code.
