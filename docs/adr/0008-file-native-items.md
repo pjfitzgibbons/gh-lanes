@@ -63,12 +63,12 @@ GitHub Issues is not used.
   plan. The tool checks every write for a cycle across the whole plan
   ([`E1`, `E2`](../requirements.md)). A parent is `parent: <id>` on the child
   ([`A4`](../requirements.md)).
-- A multi-repo plan is a repo's `.tracker/` that also lists member repos by path and reads
-  their items in place. It keeps its own items like any repo, and also holds the milestones that
-  span repos ([`A2`](../requirements.md)). Every query across the plan reads the members' files
+- Every repo's `.tracker/` is a plan. One that also lists member repos by path spans them, and
+  reads their items in place. It keeps its own items like any repo, and also holds the milestones
+  that span repos ([`A2`](../requirements.md)). Every query across the plan reads the members' files
   ([`A1`](../requirements.md)). Sibling repos find the plan through the root pointer (#77).
-- A milestone named on an item is looked up in the item's own repo first, then in the plan.
-  A repo can keep milestones of its own beside the plan's.
+- A milestone named on an item is looked up in the item's own repo first, then in the plan that
+  lists the repo as a member. A repo can keep milestones of its own beside that plan's.
 - Work on an item happens on a branch named for it, `<type>/<id>-<slug>`, such as
   `feat/gp-bakor-json-files`, in the item's own repo.
 - The default branch carries the tracker's current state. Whatever it says about an item is
@@ -184,18 +184,18 @@ GitHub Issues is not used.
   missing on disk is reported, and the plan is answered without it.
 - A change that touches several repos, such as moving items into a shared milestone, is one commit
   per repo. Nothing makes them atomic.
-- A cross-repo `blocked_by` is checked only where the plan is visible. A repo validated on its own
-  reports a reference to another repo as unresolved, not as an error.
+- A cross-repo `blocked_by` is checked only from a plan that lists both repos. A repo validated on
+  its own reports a reference to another repo as unresolved, not as an error.
 - There is no web page per item until the web UI exists. GitHub renders the Markdown file, which
   covers reading.
 - Discussion lives in PR reviews and commit messages. Nothing replaces issue comments.
 - Requirements change: `C5`'s start is the tool's start commit and its finish the commit on the
   default branch that makes an item Done, `E1` no longer cites GitHub's blocked-by, and `F4`
   labels live in the file.
-- ADR 0002 keeps a `.tracker/` per repo, and any of them can list member repos to become a plan.
-  A plan's `config.repos` names checkouts by path, not GitHub repos holding issues.
-- A repo milestone with the same ID as a plan milestone hides the plan's for that repo's items.
-  `plan validate` reports the shadowing.
+- ADR 0002 keeps a `.tracker/` per repo, and any of them can list member repos to span them.
+  That plan's `config.repos` names checkouts by path, not GitHub repos holding issues.
+- A repo milestone with the same ID as a milestone in a plan that lists the repo hides that plan's
+  milestone for the repo's items. `plan validate` reports the shadowing.
 - ADR 0006 tags time entries with the item ID (`gp-bakor`) instead of `<owner>/<repo>#<n>`.
 - The issue-based skills (`gh-issues`, `worktask`, the `plan` stand-in) and tt's branch parsing
   change to the new IDs and branch names, and `worktask` calls `plan start`.
