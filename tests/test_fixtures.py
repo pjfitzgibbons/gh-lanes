@@ -161,7 +161,8 @@ def test_no_yaml_is_left():
 def test_every_tracker_file_is_canonical(root):
     """Design 0001 *File format*: re-dumping a file reproduces it byte for byte.
 
-    A file the schema rejects can't be re-dumped through its model, so only its layout is checked.
+    A file the schema rejects can't be re-dumped through its model, so its layout and key order are
+    checked instead, and an item must still carry the defaults every item file is written with.
     """
     config = root / ".tracker" / "config.json"
     files = [(config, Config, {}), *((p, Item, {}) for p in item_files(root)),
@@ -174,6 +175,9 @@ def test_every_tracker_file_is_canonical(root):
             parsed = model.model_validate(data, context=context)
         except ValidationError:
             assert root.name in SCHEMA_TREES, path
+            fields = list(model.model_fields)
+            assert list(data) == sorted(data, key=fields.index), path
+            assert model is not Item or {"draft", "priority", "status"} <= set(data), path
             continue
         assert dumps(parsed) == text, path
 

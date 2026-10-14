@@ -131,6 +131,24 @@ def test_a_utc_datetime_ends_in_z():
     assert '"frozen_at": "2026-10-10T16:00:00Z"' in dumps(Item.model_validate(load(ITEM_FILE)))
 
 
+@pytest.mark.parametrize(
+    "frozen_at",
+    ["2026-10-10T17:00:00+01:00", "2026-10-10T16:00:00.123456Z", "2026-10-10T16:00:00+00:00"],
+    ids=["offset", "fractional", "plus-zero"],
+)
+def test_a_datetime_is_held_as_utc_to_the_second(frozen_at):
+    data = load(ITEM_FILE)
+    data["baseline"]["frozen_at"] = frozen_at
+    assert dumps(Item.model_validate(data)) == ITEM_FILE
+
+
+def test_a_datetime_without_a_time_zone_is_rejected():
+    data = load(ITEM_FILE)
+    data["baseline"]["frozen_at"] = "2026-10-10T16:00:00"
+    with pytest.raises(ValidationError, match="has no time zone"):
+        Item.model_validate(data)
+
+
 def test_non_ascii_is_written_as_itself():
     m = Milestone.model_validate(load(MILESTONE_FILE) | {"title": "Café"})
     assert '"title": "Café"' in dumps(m)
@@ -154,8 +172,13 @@ def test_a_leading_byte_order_mark_is_accepted(tmp_path):
 
 @pytest.mark.parametrize(
     ("content", "message"),
-    [(b'{"title": "Caf\xe9"}', "not valid UTF-8"), (b'{"title": ', "not valid JSON")],
-    ids=["latin-1", "truncated"],
+    [
+        (b'{"title": "Caf\xe9"}', "not valid UTF-8"),
+        (b'{"title": ', "not valid JSON"),
+        (b'{"order": NaN}', "NaN is not a JSON number"),
+        (b'{"order": -Infinity}', "-Infinity is not a JSON number"),
+    ],
+    ids=["latin-1", "truncated", "nan", "infinity"],
 )
 def test_an_unreadable_file_is_reported_by_name(tmp_path, content, message):
     path = tmp_path / "beta.json"

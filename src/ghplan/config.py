@@ -76,7 +76,7 @@ class TimeSourceConfig(BaseModel):
 
 class Config(BaseModel):
     # A misspelt key fails loudly instead of silently taking its default.
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
 
     # Field order is the file's key order.
     points_per_week: float = Field(gt=0)

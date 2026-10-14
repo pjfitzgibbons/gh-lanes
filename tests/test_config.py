@@ -164,6 +164,8 @@ def test_defaults(tmp_path):
         ({"lanes": []}, "lanes"),
         ({"repos": {}}, "repos"),
         ({"points_per_week": 0}, "points_per_week"),
+        ({"points_per_week": float("inf")}, "points_per_week"),
+        ({"hours_per_point": float("nan")}, "hours_per_point"),
         ({"write_pause_seconds": -1}, "write_pause_seconds"),
         ({"repos": {"x": {"path": ".", "gh": "no-slash"}}}, "gh"),
         ({"repos": {"x": {"path": "/abs/app", "gh": "o/r"}}}, "must be relative"),
