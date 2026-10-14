@@ -12,7 +12,7 @@ The tool is a single-user program on one machine. Its job is to read and write a
 and to call `gh` with the host's credentials. That call is a fixed constraint:
 [`G3`](../requirements.md) forbids a new credential, and `gh` is already authenticated.
 
-The committed tracker files are JSON ([ADR 0007](0007-tracker-files-are-json.md)). The schema
+The committed tracker files are JSON ([ADR 0007](0007-tracker-files-are-yaml.md)). The schema
 has to be validated at write time for [`B3`](../requirements.md), and the index is SQLite
 ([ADR 0001](0001-git-is-the-database.md)).
 

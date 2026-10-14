@@ -116,7 +116,7 @@ the committed files and the cached pull, without the network. If the cached pull
 One file per item and one per milestone means concurrent edits to different items merge cleanly,
 and `git log -p` on one file is that item's history. The committed files are formatted JSON, one
 key per line, in one canonical form that every tool write produces
-([ADR 0007](adr/0007-tracker-files-are-json.md)). The schemas are in
+([ADR 0007](adr/0007-tracker-files-are-yaml.md)). The schemas are in
 [design 0001, *Data model*](design/0001-phase-1.md#data-model) and
 [design 0002, *Data model*](design/0002-tracked-time.md#data-model).
 
@@ -160,7 +160,7 @@ open a network connection. Everything else is pure and testable without a networ
 | Language | Python 3.14+ (the floor is the one version CI tests) | [ADR 0004](adr/0004-python-no-docker.md) |
 | GitHub access | subprocess to `gh` | requirement [`G3`](requirements.md) |
 | Time tracker access | one adapter per vendor behind `TimeSource` | [ADR 0006](adr/0006-tracked-time.md) |
-| Tracker files | formatted JSON via stdlib `json` | [ADR 0007](adr/0007-tracker-files-are-json.md) |
+| Tracker files | formatted JSON via stdlib `json` | [ADR 0007](adr/0007-tracker-files-are-yaml.md) |
 | Index | SQLite via stdlib `sqlite3` | [ADR 0001](adr/0001-git-is-the-database.md) |
 | Validation | Pydantic v2 | [ADR 0004](adr/0004-python-no-docker.md) |
 | CLI | Typer | [ADR 0004](adr/0004-python-no-docker.md) |

@@ -24,7 +24,7 @@ without re-parsing every item file on each request.
 
 The source of truth is one file per item at `.tracker/items/<repo>/<n>.json` and one per milestone at
 `.tracker/milestones/<id>.json`, committed in git. Nothing authoritative lives anywhere else. The
-files are formatted JSON ([ADR 0007](0007-tracker-files-are-json.md)).
+files are formatted JSON ([ADR 0007](0007-tracker-files-are-yaml.md)).
 
 SQLite at `.tracker/.cache/index.db` is a derived index of those files joined with GitHub facts. The GitHub facts come from the last pull, cached beside it as `.tracker/.cache/gh/<repo>.json`. Both are gitignored and can be deleted at any time. `plan reindex` rebuilds the index offline from the committed files and the cached pull. If the cached pull is gone too, `reindex` builds from the item files alone, and the next pull restores the GitHub facts.
 

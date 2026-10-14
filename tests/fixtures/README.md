@@ -35,7 +35,7 @@ In a real tracker `.cache/` is gitignored, by the `.tracker/.gitignore` that `pl
 
 ## broken/
 
-Each directory is named for the one §9 rule it trips. Apart from that one fault, every tree is valid. Tracker files carry no comments ([ADR 0007](../../docs/adr/0007-tracker-files-are-json.md)), so each tree's fault is listed here:
+Each directory is named for the one §9 rule it trips. Apart from that one fault, every tree is valid. Tracker files carry no comments ([ADR 0007](../../docs/adr/0007-tracker-files-are-yaml.md)), so each tree's fault is listed here:
 
 | Tree | Fault |
 |---|---|

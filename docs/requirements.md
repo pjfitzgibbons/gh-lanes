@@ -43,7 +43,7 @@ traded · `COULD`: nice, and no tool gets credit for it over a MUST.
 | **C2** | MUST | **Duration derived from estimate × velocity**, not typed per item | |
 | **C3** | MUST | **Baseline start and finish, frozen** and never silently recomputed | A baseline that moves when the estimate changes is not a baseline |
 | **C4** | MUST | **Re-baselining is deliberate and leaves a record** of when and why | |
-| **C5** | MUST | **Actual start and finish derived from evidence**, not typed: first commit on the item's branch, and the close event | A commit timestamp is evidence in git history; a typed date is an assertion |
+| **C5** | MUST | **Actual start and finish derived from evidence**, not typed: the tool's start commit on the default branch, and the commit on the default branch that makes the item Done | A commit timestamp is evidence in git history; a typed date is an assertion |
 | **C6** | SHOULD | Planned-versus-actual variance visible per item and per milestone | |
 | **C7** | COULD | **Gantt rendering** | Deferred: it answers "when will this be done", which for work done a few hours at a time is a number nobody should trust. Wanted eventually |
 | **C8** | SHOULD | No working-calendar/weekend logic that would double-count idleness already inside the weekly velocity | |
@@ -59,13 +59,14 @@ traded · `COULD`: nice, and no tool gets credit for it over a MUST.
 | **D3** | MUST | **"What can I start right now" answerable directly**: the head of each lane with dependencies met | The daily question, and the one a Gantt never answers |
 | **D4** | MUST | **Single-valued lane membership** | An item in two contention domains breaks the invariant. A multi-value label cannot enforce this |
 | **D5** | SHOULD | Multiple concurrent sessions / worktrees supported without the tracker fighting it | |
+| **D6** | SHOULD | **`.tracker/ready.yml` is the committed answer to `plan ready`.** It lists the items `plan ready` reports (`D3`), at most 20, with what `ready` reports for each (ID, title, estimate, duration, lane, milestone, priority, focus, and what it unblocks), and when it was generated. Its as-of commit is the last commit that wrote it, which git and GitHub's file view both show; the file cannot name the commit that contains it. A second section lists the items in flight: each branch on `origin` that names an item, with the item's ID and title, the branch, its `started` and `started_via`, and the date of the branch's last commit | A viewer reads it on GitHub or in an editor with no tool installed. Only pushed branches are listed, so the file is the same whichever machine generates it |
 
 <a id="dependencies"></a>
 ## 6. Dependencies and ordering (E)
 
 | # | Priority | Requirement | Why |
 |---|---|---|---|
-| **E1** | MUST | **First-class blocks / blocked-by relationships** | Dependencies drive ordering, readiness and baseline dates. GitHub Issues has native blocked-by / blocking relationships, and the tracker reads them (see [ADR 0003](adr/0003-disjoint-field-ownership.md)) |
+| **E1** | MUST | **First-class blocks / blocked-by relationships** | Dependencies drive ordering, readiness and baseline dates. They live in the item file as `blocked_by`, and can name an item in another repo of the same plan (see [ADR 0008](adr/0008-file-native-items.md)) |
 | **E2** | MUST | **Cycle detection**, or data good enough to detect cycles reliably in a script | A cycle makes the topological sort undefined, and the sort drives both ordering and baseline dates |
 | **E3** | MUST | **Priority that lets newly filed urgent work outrank everything older** | Issue-number ordering sorts a new P0 last, which is backwards |
 | **E4** | SHOULD | Dependencies are *intra-milestone only* by convention; cross-milestone sequence comes from milestone order | Recording what milestone order already implies produces a dense, cycle-prone, useless edge list |
@@ -91,6 +92,7 @@ traded · `COULD`: nice, and no tool gets credit for it over a MUST.
 | **G4** | SHOULD | Low operational burden: no other system that itself needs patching, backing up and validating | A self-hosted tracker is one more system to secure and maintain |
 | **G5** | SHOULD | Change history on tracking data: who changed an estimate or a baseline, and when | |
 | **G6** | SHOULD | **Tracking files are editable by hand**, in a text editor, with no tool installed | A person fixes or reviews a value where it lives. The tool is a convenience over the files, not the only way to change them |
+| **G7** | SHOULD | **An item's front matter shows the data behind `plan why`** without a tool. `blocked_by` is a list of `"<id> - <title>"` strings | The ID is authoritative. The tool rewrites the title part on every write |
 
 <a id="automation"></a>
 ## 9. Automation (H)
@@ -98,8 +100,8 @@ traded · `COULD`: nice, and no tool gets credit for it over a MUST.
 | # | Priority | Requirement | Why |
 |---|---|---|---|
 | **H1** | MUST | **Scriptable from the command line** for lint and generated views | |
-| **H5** | SHOULD | Automatic membership: new items join the tracked set without a manual step | |
-| **H6** | SHOULD | Validation hooks, so a rule can be enforced server-side rather than by a lint that runs later | A lint detects; it does not prevent |
+| **H5** | SHOULD | Automatic membership: new items join the tracked set without a manual step | An item file in a repo's `.tracker/items/` is in the plan. There is no second list to add it to |
+| **H6** | SHOULD | Validation hooks, so a rule is enforced by a pre-commit hook or a CI check before a change lands, rather than by a lint that runs later | A lint detects; it does not prevent |
 
 <a id="cost"></a>
 ## 10. Cost and licence (I)
