@@ -1,6 +1,6 @@
 ---
 title: "Dogfood: gh-plan's own work in .tracker/items"
-status: In Progress
+status: Done
 estimate: 1
 priority: P1
 ordinal: 300

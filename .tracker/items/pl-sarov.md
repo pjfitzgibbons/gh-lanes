@@ -1,6 +1,6 @@
 ---
 title: "Items are file-native: ADRs 0007 and 0008, requirements"
-status: In Progress
+status: Done
 estimate: 3
 priority: P1
 ordinal: 100
