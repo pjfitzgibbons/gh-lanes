@@ -10,10 +10,9 @@ from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
-from ruamel.yaml import YAML
 
-from ghplan.config import load
-from ghplan.model import Item, Milestone
+from ghplan.config import Config, load
+from ghplan.model import Item, Milestone, dumps, read_json
 
 FIXTURES = Path(__file__).parent / "fixtures"
 VALID = FIXTURES / "valid" / "web-app"
@@ -50,19 +49,16 @@ REF_KEYS = {"id", "number", "state", "title", "url"}  # a blockedBy node, and pa
 LABEL_KEYS = {"color", "description", "id", "name"}
 SUMMARY_KEYS = {"completed", "percentCompleted", "total"}
 
-yaml = YAML(typ="safe", pure=True)
-
-
 def trees():
     return [VALID, *sorted(p for p in BROKEN.iterdir() if p.is_dir())]
 
 
 def item_files(root):
-    return sorted((root / ".tracker" / "items").glob("*/*.yml"))
+    return sorted((root / ".tracker" / "items").glob("*/*.json"))
 
 
 def milestone_files(root):
-    return sorted((root / ".tracker" / "milestones").glob("*.yml"))
+    return sorted((root / ".tracker" / "milestones").glob("*.json"))
 
 
 def gh_rows(root):
@@ -89,16 +85,16 @@ def test_valid_config_loads():
 
 @pytest.mark.parametrize("path", item_files(VALID), ids=lambda p: f"{p.parent.name}/{p.name}")
 def test_valid_items_load(path):
-    Item.model_validate(yaml.load(path.read_text()))
+    Item.model_validate(read_json(path))
 
 
 @pytest.mark.parametrize("path", milestone_files(VALID), ids=lambda p: p.name)
 def test_valid_milestones_load(path):
-    Milestone.model_validate(yaml.load(path.read_text()), context={"stem": path.stem})
+    Milestone.model_validate(read_json(path), context={"stem": path.stem})
 
 
 def test_valid_covers_what_the_ticket_lists():
-    items = [Item.model_validate(yaml.load(p.read_text())) for p in item_files(VALID)]
+    items = [Item.model_validate(read_json(p)) for p in item_files(VALID)]
     assert {i.status for i in items} == {"Icebox", "Todo", "In Progress", "Blocked", "Done"}
     assert any(i.draft for i in items)
     assert any(i.baseline for i in items)
@@ -110,7 +106,7 @@ def test_valid_covers_what_the_ticket_lists():
     assert six["subIssuesSummary"]["total"] == 0
     assert any(r["subIssuesSummary"]["total"] for r in issues)
     assert {r["stateReason"] for r in issues} == {"", "COMPLETED", "NOT_PLANNED"}
-    orders = [Milestone.model_validate(yaml.load(p.read_text())).order
+    orders = [Milestone.model_validate(read_json(p)).order
               for p in milestone_files(VALID)]
     assert len(orders) == 2 and len(set(orders)) == 2
 
@@ -119,7 +115,7 @@ def test_valid_items_match_their_issues():
     """Every non-draft item is in its repo's recorded output, under the same node id."""
     by_repo = {repo: {r["number"]: r for r in rows} for repo, rows in gh_rows(VALID).items()}
     for path in item_files(VALID):
-        item = Item.model_validate(yaml.load(path.read_text()))
+        item = Item.model_validate(read_json(path))
         if item.draft:
             continue
         assert path.parent.name == item.repo and path.stem == str(item.issue)
@@ -144,14 +140,46 @@ def test_broken_tree_loads_except_its_schema_fault(name):
     root = BROKEN / name
     load(root)
     for path in milestone_files(root):
-        Milestone.model_validate(yaml.load(path.read_text()), context={"stem": path.stem})
+        Milestone.model_validate(read_json(path), context={"stem": path.stem})
     failures = []
     for path in item_files(root):
         try:
-            Item.model_validate(yaml.load(path.read_text()))
+            Item.model_validate(read_json(path))
         except ValidationError:
             failures.append(path.name)
     assert bool(failures) == (name in SCHEMA_TREES)
+
+
+# ------------------------------------------------------------------ file format
+
+
+def test_no_yaml_is_left():
+    assert list(FIXTURES.rglob("*.yml")) == []
+
+
+@pytest.mark.parametrize("root", trees(), ids=lambda p: str(p.relative_to(FIXTURES)))
+def test_every_tracker_file_is_canonical(root):
+    """Design 0001 *File format*: re-dumping a file reproduces it byte for byte.
+
+    A file the schema rejects can't be re-dumped through its model, so its layout and key order are
+    checked instead, and an item must still carry the defaults every item file is written with.
+    """
+    config = root / ".tracker" / "config.json"
+    files = [(config, Config, {}), *((p, Item, {}) for p in item_files(root)),
+             *((p, Milestone, {"stem": p.stem}) for p in milestone_files(root))]
+    for path, model, context in files:
+        text = path.read_bytes().decode("utf-8")
+        data = json.loads(text)
+        assert text == json.dumps(data, indent=2, ensure_ascii=False) + "\n", path
+        try:
+            parsed = model.model_validate(data, context=context)
+        except ValidationError:
+            assert root.name in SCHEMA_TREES, path
+            fields = list(model.model_fields)
+            assert list(data) == sorted(data, key=fields.index), path
+            assert model is not Item or {"draft", "priority", "status"} <= set(data), path
+            continue
+        assert dumps(parsed) == text, path
 
 
 # ------------------------------------------------------------------ recorded gh output
@@ -186,5 +214,5 @@ def test_each_repo_has_a_recording_and_no_tracker_gitignore(root):
 def test_no_real_owners(root):
     """Synthetic only: every repo and URL is under example-org."""
     text = "".join(p.read_text() for p in root.rglob("*") if p.is_file())
-    owners = set(re.findall(r'gh: "([^/"]+)/', text)) | set(re.findall(r"github\.com/([^/]+)/", text))
+    owners = set(re.findall(r'"gh": "([^/"]+)/', text)) | set(re.findall(r"github\.com/([^/]+)/", text))
     assert owners == {"example-org"}

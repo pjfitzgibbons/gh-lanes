@@ -48,8 +48,8 @@ The technique table is in [architecture §11](../architecture.md#views).
   board and the timeline are the same template with different column semantics.
 - GitHub shows a committed HTML file as source, so the charts are not viewable on GitHub. They are
   build artifacts in `.tracker/out/`, gitignored, and not committed evidence.
-- [`G1`](../requirements.md) is unaffected, because it concerns the tracking data, the item YAML,
-  which stays committed and diffable ([ADR 0001](0001-git-is-the-database.md)). Only the rendering
+- [`G1`](../requirements.md) is unaffected, because it concerns the tracking data, the item files,
+  which stay committed and diffable ([ADR 0001](0001-git-is-the-database.md)). Only the rendering
   needs the tool to view.
 - A chart needed by someone with no checkout is shared as a screenshot or a published page.
 - HTML rendering arrives in Phase 2; Phase 1 answers *what next* in the terminal

@@ -1,4 +1,4 @@
-"""`.tracker/config.yml`: the model, and finding `.tracker/` from wherever the CLI runs.
+"""`.tracker/config.json`: the model, and finding `.tracker/` from wherever the CLI runs.
 
 Discovery walks up from the working directory like git does; `PLAN_ROOT` names the directory that
 holds `.tracker/` and skips the walk. See design 0001 *Discovery* and *Config*.
@@ -11,10 +11,12 @@ from pathlib import Path
 from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
-from ruamel.yaml import YAML, YAMLError
+
+from ghplan.model import FileFormatError, read_json
 
 TRACKER_DIR = ".tracker"
-CONFIG_FILE = "config.yml"
+CONFIG_FILE = "config.json"
+YAML_CONFIG_FILE = "config.yml"  # the format before ADR 0007
 ROOT_ENV = "PLAN_ROOT"
 # GitHub's owner rule: ASCII letters, digits and single inner hyphens. Repo names: ASCII letters,
 # digits, `.`, `-` and `_`, with `.` and `..` reserved.
@@ -32,6 +34,15 @@ class NotFoundError(TrackerError):
         self.searched = searched
         paths = "\n".join(f"  {p}" for p in searched)
         super().__init__(f"no {TRACKER_DIR}/{CONFIG_FILE} found; searched:\n{paths}")
+
+
+class NeedsConvertingError(TrackerError):
+    def __init__(self, path: Path):
+        self.path = path
+        super().__init__(
+            f"{path} is YAML; tracker files are JSON now (ADR 0007). "
+            f"Convert {path.parent} to JSON before running plan"
+        )
 
 
 class Repo(BaseModel):
@@ -65,16 +76,17 @@ class TimeSourceConfig(BaseModel):
 
 class Config(BaseModel):
     # A misspelt key fails loudly instead of silently taking its default.
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
 
+    # Field order is the file's key order.
     points_per_week: float = Field(gt=0)
     project_start: date
     stale_after_minutes: int = Field(default=15, ge=0)
     write_pause_seconds: float = Field(default=1.0, ge=0)
-    repos: dict[str, Repo] = Field(min_length=1)
-    lanes: list[str] = Field(min_length=1)
     hours_per_point: float = Field(default=8.0, gt=0)
     time_source: TimeSourceConfig | None = None
+    repos: dict[str, Repo] = Field(min_length=1)
+    lanes: list[str] = Field(min_length=1)
 
     @model_validator(mode="after")
     def _no_duplicate_lanes(self) -> Self:
@@ -100,11 +112,15 @@ class Tracker(BaseModel):
         return (self.root / self.config.repos[name].path).resolve()
 
     def milestone_files(self) -> list[Path]:
-        return sorted((self.tracker_dir / "milestones").glob("*.yml"))
+        return sorted((self.tracker_dir / "milestones").glob("*.json"))
 
 
 def find_root(cwd: Path | None = None, env: dict[str, str] | None = None) -> Path:
-    """Return the directory holding `.tracker/config.yml`, or raise NotFoundError."""
+    """Return the directory holding `.tracker/config.json`, or raise NotFoundError.
+
+    A `.tracker/` holding only the YAML config raises NeedsConvertingError, so an unconverted
+    tracker fails loudly instead of the walk passing it by.
+    """
     env = os.environ if env is None else env
     if override := env.get(ROOT_ENV):
         candidates = [Path(override).resolve()]
@@ -117,17 +133,21 @@ def find_root(cwd: Path | None = None, env: dict[str, str] | None = None) -> Pat
         searched.append(config)
         if config.is_file():
             return directory
+        if (yaml_config := config.with_name(YAML_CONFIG_FILE)).is_file():
+            raise NeedsConvertingError(yaml_config)
     raise NotFoundError(searched)
 
 
 def load(root: Path) -> Config:
     path = root / TRACKER_DIR / CONFIG_FILE
     try:
-        data = YAML(typ="safe", pure=True).load(path.read_text(encoding="utf-8"))
-    except (OSError, YAMLError) as e:
+        data = read_json(path)
+    except FileFormatError as e:
+        raise TrackerError(str(e)) from e
+    except OSError as e:
         raise TrackerError(f"{path}: {e}") from e
     try:
-        return Config.model_validate(data or {})
+        return Config.model_validate(data)
     except ValidationError as e:
         raise TrackerError(f"{path}: {e}") from e
 

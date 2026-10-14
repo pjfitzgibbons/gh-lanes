@@ -2,12 +2,63 @@
 
 GitHub-owned facts (title, state, labels, parent, blocked-by) are absent on purpose: they are read
 by pull and cached in the index, never copied here. See design 0001 *Data model*.
+
+The files are JSON in one canonical form (design 0001 *File format*). Each model declares its fields
+in the order the file's keys are written, so `dumps` takes the key order from the model.
 """
 
-from datetime import date, datetime
-from typing import Literal, Self
+import json
+from datetime import UTC, date, datetime
+from pathlib import Path
+from typing import Annotated, Any, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, ValidationInfo, field_validator, model_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
+
+
+class FileFormatError(ValueError):
+    """A tracker file is not valid UTF-8 or not valid JSON. The message names the file."""
+
+
+def _reject_constant(name: str):
+    # json.loads accepts NaN and Infinity, which RFC 8259 JSON does not have.
+    raise ValueError(f"{name} is not a JSON number")
+
+
+def read_json(path: Path) -> Any:
+    """Parse a tracker file. A leading byte-order mark, which some editors add, is accepted."""
+    raw = path.read_bytes()
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError as e:
+        raise FileFormatError(f"{path}: not valid UTF-8: {e}") from e
+    try:
+        return json.loads(text, parse_constant=_reject_constant)
+    except ValueError as e:  # JSONDecodeError, or a NaN or Infinity
+        raise FileFormatError(f"{path}: not valid JSON: {e}") from e
+
+
+def dumps(model: BaseModel) -> str:
+    """The canonical form: keys in field order, null fields left out, UTF-8 unescaped."""
+    data = model.model_dump(mode="json", exclude_none=True)
+    return json.dumps(data, indent=2, ensure_ascii=False, allow_nan=False) + "\n"
+
+
+def _utc_to_the_second(v: datetime) -> datetime:
+    # Without a zone the instant is unknown, so it is refused rather than assumed to be UTC.
+    if v.tzinfo is None:
+        raise ValueError(f"{v.isoformat()} has no time zone; write it in UTC, ending in Z")
+    return v.astimezone(UTC).replace(microsecond=0)
+
+
+# Read with any offset, held and written as UTC to the second: "2026-10-10T16:00:00Z".
+UtcDatetime = Annotated[datetime, AfterValidator(_utc_to_the_second)]
 
 Estimate = Literal[1, 2, 3, 5]  # 8 and 13 mean "split this"; they are not representable
 Priority = Literal["P0", "P1", "P2", "P3"]
@@ -16,13 +67,13 @@ Status = Literal["Icebox", "Todo", "In Progress", "Blocked", "Done"]
 
 class _File(BaseModel):
     # A misspelt key in a hand-edited file fails instead of being silently dropped.
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
 
 class Baseline(_File):
     start: date
     finish: date
-    frozen_at: datetime
+    frozen_at: UtcDatetime
     reason: str
 
     @model_validator(mode="after")
@@ -33,10 +84,11 @@ class Baseline(_File):
 
 
 class Item(_File):
-    node_id: str | None = None  # GitHub global id, the real key. None only while draft
+    # Field order is the file's key order.
     issue: int | None = None  # human key; a cache that reconcile repairs. None only while draft
-    repo: str  # short name in config.repos
+    node_id: str | None = None  # GitHub global id, the real key. None only while draft
     draft: bool = False
+    repo: str  # short name in config.repos
     estimate: Estimate | None = None  # None = needs-triage, or a parent with children
     priority: Priority = "P2"
     status: Status = "Icebox"

@@ -1,8 +1,0 @@
-issue: 2
-node_id: I_example_webapp_2
-repo: web-app
-estimate: 2
-status: Todo
-ordinal: 200
-lane: api
-milestone: beta
