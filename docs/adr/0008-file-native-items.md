@@ -24,13 +24,17 @@ GitHub, only half of each item does: its title, body, state and dependencies sta
 the repo's history.
 
 GitHub Issues gives this project an issue number, a web page per issue, and `Closes #N` closing an
-issue when its PR merges. It is used by one person ([requirements](../requirements.md)), so issue
-comments, notifications and assignment do little that the commit history does not.
+issue when its PR merges into the default branch
+([linking a pull request to an issue](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue)).
+It is used by one person ([requirements](../requirements.md)), so issue comments, notifications and
+assignment do little that the commit history does not.
 
 Actual start and finish come from evidence, not typed dates ([`C5`](../requirements.md)). Work
 happens on a branch and lands on the default branch as one squash commit, so the default branch's
-history keeps the merge but not the branch's commits or its name. A squash commit's message can be
-edited at merge time, so it is not reliable evidence either.
+history keeps the merge but not the branch's commits or its name. GitHub generates the squash
+commit's message and the person merging can edit it
+([about pull request merges](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/incorporating-changes-from-a-pull-request/about-pull-request-merges)),
+so it is not reliable evidence either.
 
 The default branch is the one GitHub has configured for the repo: `main` in a repo that merges
 straight to it, `develop` in one using git-flow, where pull requests target `develop` and releases
@@ -52,9 +56,10 @@ GitHub Issues is not used.
   The word alternates consonant and vowel, five letters long (CVCVC), from 16 consonants and 5
   vowels: about 102,000 words per repo, with a blocklist for words that read badly. The prefix is
   set in the repo's `config` and names the repo, so an ID means the same item in any plan that
-  includes it. The tool picks a word no existing file uses, so two worktrees creating items at once
-  are unlikely to collide ([`D5`](../requirements.md)), and no counter needs merging. A word can be
-  said aloud and typed from memory.
+  includes it. Prefixes are unique within a plan: a plan whose members share a prefix fails
+  `plan validate`. The tool picks a word no existing file uses, so two worktrees creating items at
+  once are unlikely to collide ([`D5`](../requirements.md)), and no counter needs merging. A word
+  can be said aloud and typed from memory.
 - An ID is rarely typed in full. Inside its own repo the prefix may be left off. Any unique
   prefix of the word is enough (`bak`), and so is a unique word from the title. Commands run on a
   branch named for an item take its ID from the branch, and shell completion offers IDs with their
@@ -75,8 +80,10 @@ GitHub Issues is not used.
   the item's status, and the tool commits to it directly when work starts or stops. Every other
   change to the tracker reaches it through a pull request, like code.
 - The start is a tool commit on the default branch. Two signals start an item: a skill calls
-  `plan start <id>`, or a `post-checkout` hook, which git runs when a branch is created or checked
-  out and after `git worktree add`, sees a branch name carrying an ID. The tool sets
+  `plan start <id>`, or a `post-checkout` hook sees a branch name carrying an ID. Git runs that
+  hook when a branch is checked out, including one just made with `git switch -c`, and after
+  `git worktree add`, but not after a bare `git branch <name>`
+  ([githooks(5)](https://git-scm.com/docs/githooks#_post_checkout)). The tool sets
   `status: In Progress`, `started` (UTC, to the second) and `started_via`, regenerates
   `ready.yml`, commits both to the default branch and pushes. It never overwrites an existing
   `started`.
@@ -97,6 +104,11 @@ GitHub Issues is not used.
   working tree does not change. Its message is fixed, `plan: start <id>` or `plan: stop <id>`, so
   `git log --grep '^plan:'` finds every one. Offline, the commit is kept locally and pushed by the
   next `plan sync` or `git push`.
+- Two starts can race. The tool moves the local default branch only by compare-and-swap
+  (`git update-ref <ref> <new> <old>`), so two worktrees on one machine cannot overwrite each
+  other's start. When a push is rejected because the default branch moved, the tool fetches and
+  re-reads the item on the new tip. If the item is already started there, it does nothing.
+  Otherwise it rebuilds its commit on that tip, regenerating `ready.yml`, and pushes again.
 - The tool's only remote write is a `git push` of its own commits. It never writes through
   GitHub's API. Reading a repo's pull requests through `gh` only adds the PR number and link to
   reports.
@@ -163,10 +175,13 @@ GitHub Issues is not used.
   merges without a conflict. A branch that missed its start conflicts on the `status` line.
 - Two branches that each create an item can, rarely, pick the same word. The second merge
   conflicts on the new file, and `plan validate` reports a duplicate ID.
-- A second branch for an item already started finds `started` set and leaves it.
-  `plan validate` reports a `started` later than the first tracked time for the item.
-- The tool finds the default branch from `refs/remotes/origin/HEAD`, which `git clone` sets and
-  `git remote set-head origin --auto` refreshes, so it needs no GitHub read.
+- A second start for an item already started, from another branch or from a lost push race, finds
+  `started` set on the default branch and leaves it. `plan validate` reports a `started` later than
+  the first tracked time for the item.
+- The tool finds the default branch from `refs/remotes/origin/HEAD`, so it needs no GitHub read.
+  `git remote set-head origin --auto` sets it from the remote
+  ([git-remote(1)](https://git-scm.com/docs/git-remote#Documentation/git-remote.txt-set-head)).
+  `git clone` sets it too: this repo's clone has it, but git-clone(1) does not say so 🔍.
 - Branch protection must let the owner push to the default branch. On gh-plan, `main` requires the
   `pytest` check, and `enforce_admins` is off, so an admin's push goes through (read from the branch
   protection API on 2026-10-14). The rule is also strict: a pull request must be up to date with
@@ -177,7 +192,8 @@ GitHub Issues is not used.
   them too.
 - `plan hooks install` writes the `post-checkout` hook beside the `post-merge` hook of
   [design 0002](../design/0002-tracked-time.md#post-merge). Git takes `post-checkout`'s exit status
-  as the checkout's, so the hook always exits 0.
+  as the checkout's ([githooks(5)](https://git-scm.com/docs/githooks#_post_checkout)), so the hook
+  always exits 0.
 - A branch for an item lives in the item's repo. Work an item needs in another repo is a child item
   there.
 - A plan across repos depends on their checkouts sitting where the plan's config says. A member

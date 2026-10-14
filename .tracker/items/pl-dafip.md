@@ -20,6 +20,7 @@ Record an item's start as ADR 0008 decides: a curated tool commit on the default
 - The `post-checkout` hook, written by `plan hooks install`: on a branch carrying an ID, start the item, then fast-forward the branch onto the start commit if it has no commits yet, or else write the change into its working tree. It always exits 0.
 - The default branch comes from `refs/remotes/origin/HEAD`.
 - Offline, the commit stays local until the next push.
+- Races: the local default branch moves only by compare-and-swap (`git update-ref <ref> <new> <old>`). A push rejected because the default branch moved fetches, re-reads the item on the new tip, does nothing if it is started there, and otherwise rebuilds the commit on that tip and pushes again.
 - Out of scope: `ready.yml`, which the start commit regenerates once it exists.
 
 ### Acceptance
@@ -28,7 +29,7 @@ Record an item's start as ADR 0008 decides: a curated tool commit on the default
 - `git log --grep '^plan:'` finds every tool commit.
 
 ### Tests
-Tests over a temporary repo with a bare remote: start, stop, the hook on a fresh branch, the hook on a branch with commits, offline start.
+Tests over a temporary repo with a bare remote: start, stop, the hook on a fresh branch, the hook on a branch with commits, offline start, two starts racing for one push (different items: both land; the same item: one start commit).
 
 ### Lenses
 - [ ] L1 Security
@@ -42,4 +43,4 @@ Tests over a temporary repo with a bare remote: start, stop, the hook on a fresh
 - [ ] L9 Operations and cost
 - [ ] L10 Docs impact
 - [x] L11 Invariants: the only exception to never committing straight to the default branch
-- [x] L12 Offline and concurrency: two branches starting one item: the second finds `started` set and leaves it
+- [x] L12 Offline and concurrency: two branches starting one item: the second finds `started` set and leaves it; a lost push race rebuilds on the new tip

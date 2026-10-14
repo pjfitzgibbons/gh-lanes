@@ -45,7 +45,8 @@ The tool writes one canonical form: block style, two-space indent, keys in the m
 order, null fields left out, UTF-8 with no escaping, no line folding, and a trailing newline. A
 string that a YAML 1.1 or 1.2 parser would read as another type is quoted, such as `no`, `yes`,
 `null`, `0123` or `1.10`, so the file reads the same in any YAML tool. The Markdown body is written
-back exactly as it was read. The details are in
+back exactly as it was read, except that a body without a final newline gets one. The details are
+in
 [design 0001, *File format*](../design/0001-phase-1.md#file-format).
 
 The tool does not keep comments in front matter or in the YAML files. A note about a value goes in

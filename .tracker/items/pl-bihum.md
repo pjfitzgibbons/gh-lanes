@@ -15,6 +15,7 @@ gh-plan plans its own work in the format it is moving to, before the tool can re
 ### Scope
 - `.tracker/config.yml`: `prefix: pl`, velocity, project start, hours per point and lanes.
 - `.tracker/milestones/bootstrap.md`, its exit criterion in the body.
+- `.tracker/.gitignore` ignoring `.cache/` and `out/`, so the tracker carries the rule wherever it goes (architecture §4).
 - `.tracker/items/pl-<word>.md` for the bootstrap work, front matter as ADR 0008 lists it and the body in the issue outline. IDs are drawn by hand from the CVCVC alphabet until the generator exists.
 - `started` and `started_via: hand` are set by hand on items already under way.
 - Out of scope: reading these files with the tool (the schema and store tickets), and importing the GitHub backlog.
