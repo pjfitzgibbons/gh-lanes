@@ -1,0 +1,12 @@
+{
+  "issue": 76,
+  "node_id": "I_kwDOVD-mAc8AAAABW4NbVg",
+  "draft": false,
+  "repo": "gh-plan",
+  "estimate": 3,
+  "priority": "P2",
+  "status": "Todo",
+  "ordinal": 12800,
+  "lane": "infra",
+  "milestone": "phase-1"
+}

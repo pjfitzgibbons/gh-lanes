@@ -1,0 +1,21 @@
+{
+  "points_per_week": 5.0,
+  "project_start": "2026-10-10",
+  "stale_after_minutes": 15,
+  "write_pause_seconds": 1.0,
+  "hours_per_point": 1.0,
+  "repos": {
+    "gh-plan": {
+      "path": ".",
+      "gh": "pjfitzgibbons/gh-plan"
+    }
+  },
+  "lanes": [
+    "model",
+    "engine",
+    "github",
+    "cli",
+    "web",
+    "infra"
+  ]
+}

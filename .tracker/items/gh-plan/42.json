@@ -1,0 +1,11 @@
+{
+  "issue": 42,
+  "node_id": "I_kwDOVD-mAc8AAAABWW32AA",
+  "draft": false,
+  "repo": "gh-plan",
+  "estimate": 3,
+  "priority": "P2",
+  "status": "Icebox",
+  "ordinal": 30700,
+  "lane": "github"
+}

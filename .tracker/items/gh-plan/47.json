@@ -1,0 +1,11 @@
+{
+  "issue": 47,
+  "node_id": "I_kwDOVD-mAc8AAAABWW38ng",
+  "draft": false,
+  "repo": "gh-plan",
+  "estimate": 2,
+  "priority": "P2",
+  "status": "Icebox",
+  "ordinal": 300100,
+  "lane": "infra"
+}
