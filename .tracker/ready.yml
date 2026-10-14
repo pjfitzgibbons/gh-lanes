@@ -1,17 +1,5 @@
-generated_at: 2026-10-14T14:35:36Z
+generated_at: 2026-10-14T22:02:19Z
 ready:
-  - id: pl-ganot
-    title: "store.py: YAML and Markdown front matter, in one canonical form"
-    estimate: 3
-    duration_weeks: 0.6
-    lane: model
-    milestone: bootstrap
-    priority: P1
-    focus: false
-    unblocks:
-      - "pl-nahuj - Fixture trees and a converter from JSON trackers"
-      - "pl-veles - Import gh-plan's open GitHub issues into .tracker/items, then close them"
-      - "pl-dafip - plan start and plan stop: the curated start commit and the post-checkout hook"
   - id: pl-jamup
     title: "IDs: draw a word, keep the blocklist, resolve what is typed"
     estimate: 2

@@ -1,12 +1,13 @@
 ---
 title: "store.py: YAML and Markdown front matter, in one canonical form"
 type: feat
-status: Todo
+status: In Progress
 estimate: 3
 priority: P1
 ordinal: 400
 lane: model
 milestone: bootstrap
+started: 2026-10-14T22:02:19Z
 ---
 ### Summary
 Read and write tracker files as ADR 0007 decides: Markdown with YAML front matter for issues and milestones, plain YAML for `config.yml` and `focus.yml`, loaded as YAML 1.2 with ruamel.yaml's safe loader. It replaces `read_json` and `dumps` in `model.py` and supersedes #9.
