@@ -5,6 +5,7 @@ description = "A planning layer over GitHub Issues: estimates, lanes, dependenci
 requires-python = ">=3.14"
 dependencies = [
     "pydantic>=2.14.1",
+    "ruamel-yaml>=0.19.1",
 ]
 
 [build-system]
@@ -37,4 +38,5 @@ dev = [
     "pytest-cov>=7.1.0",
     "pytest-github-actions-annotate-failures>=0.4.2",
     "pytest-md-report>=0.8.0",
+    "pyyaml>=6.0.3",
 ]
