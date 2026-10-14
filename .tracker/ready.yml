@@ -1,5 +1,4 @@
 generated_at: 2026-10-14T14:15:08Z
-commit: fe4df195cc5c66b893cd24d64133a45f5e9911cc
 ready:
   - id: pl-dobed
     title: Docs follow the file-native ADRs
