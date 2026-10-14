@@ -1,14 +1,5 @@
-generated_at: 2026-10-14T14:15:08Z
+generated_at: 2026-10-14T14:35:36Z
 ready:
-  - id: pl-dobed
-    title: Docs follow the file-native ADRs
-    estimate: 5
-    duration_weeks: 1.0
-    lane: infra
-    milestone: bootstrap
-    priority: P1
-    focus: false
-    unblocks: []
   - id: pl-ganot
     title: "store.py: YAML and Markdown front matter, in one canonical form"
     estimate: 3

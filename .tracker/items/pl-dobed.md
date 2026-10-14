@@ -1,6 +1,6 @@
 ---
 title: Docs follow the file-native ADRs
-status: Todo
+status: In Progress
 estimate: 5
 priority: P1
 ordinal: 200
@@ -8,6 +8,7 @@ lane: infra
 milestone: bootstrap
 blocked_by:
   - "pl-sarov - Items are file-native: ADRs 0007 and 0008, requirements"
+started: 2026-10-14T14:35:36Z
 ---
 ### Summary
 ADRs 0007 and 0008 make gh-plan its own tracker: items are Markdown files with YAML front matter, committed in the repo they belong to, and GitHub Issues is not used. The architecture, the two design docs, the older ADRs and the README still describe a planning layer over GitHub Issues with JSON files. This ticket brings them in line with the two ADRs. It changes the docs only.
