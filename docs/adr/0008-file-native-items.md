@@ -48,7 +48,7 @@ GitHub Issues is not used.
   outline (Summary, Scope, Acceptance, Tests, Lenses). The header holds every field: title, status,
   estimate, priority, ordinal, lane, milestone, labels, parent, blocked-by, started and baseline.
   The header's syntax is [ADR 0007](0007-tracker-files-are-yaml.md)'s.
-- IDs are the repo's prefix and a random pronounceable word, such as `gp-bakor` in gh-plan.
+- IDs are the repo's prefix and a random pronounceable word, such as `pl-bakor` in gh-plan.
   The word alternates consonant and vowel, five letters long (CVCVC), from 16 consonants and 5
   vowels: about 102,000 words per repo, with a blocklist for words that read badly. The prefix is
   set in the repo's `config` and names the repo, so an ID means the same item in any plan that
@@ -70,7 +70,7 @@ GitHub Issues is not used.
 - A milestone named on an item is looked up in the item's own repo first, then in the plan that
   lists the repo as a member. A repo can keep milestones of its own beside that plan's.
 - Work on an item happens on a branch named for it, `<type>/<id>-<slug>`, such as
-  `feat/gp-bakor-json-files`, in the item's own repo.
+  `feat/pl-bakor-json-files`, in the item's own repo.
 - The default branch carries the tracker's current state. Whatever it says about an item is
   the item's status, and the tool commits to it directly when work starts or stops. Every other
   change to the tracker reaches it through a pull request, like code.
@@ -113,11 +113,11 @@ GitHub Issues is not used.
 - Issues for intake only. Others file issues; the tracker imports each one once and closes it
   with a link to the item. It keeps a public front door and adds an import path. No one else files
   issues in these repos yet, so it waits until someone does.
-- Sequential IDs (`gp-12`). Easier to say and type. Two branches that each create an item take
+- Sequential IDs (`pl-12`). Easier to say and type. Two branches that each create an item take
   the same number, and the second merge has to renumber the file and every reference to it.
   gh-issue-sync handles this with temporary IDs rewritten after a push
   ([gh-issue-sync](https://github.com/mitsuhiko/gh-issue-sync)); random IDs avoid the problem.
-- Random base32 IDs (`gp-7k3q`), as ticket and beads use. Four characters give about a million
+- Random base32 IDs (`pl-7k3q`), as ticket and beads use. Four characters give about a million
   IDs, but a string like `7k3q` cannot be said aloud or remembered, and mixes letters and digits
   that are easy to confuse.
 - A merged PR whose body says `Closes <id>` sets the item Done. It needs a GitHub read for every
@@ -196,7 +196,7 @@ GitHub Issues is not used.
   That plan's `config.repos` names checkouts by path, not GitHub repos holding issues.
 - A repo milestone with the same ID as a milestone in a plan that lists the repo hides that plan's
   milestone for the repo's items. `plan validate` reports the shadowing.
-- ADR 0006 tags time entries with the item ID (`gp-bakor`) instead of `<owner>/<repo>#<n>`.
+- ADR 0006 tags time entries with the item ID (`pl-bakor`) instead of `<owner>/<repo>#<n>`.
 - The issue-based skills (`gh-issues`, `worktask`, the `plan` stand-in) and tt's branch parsing
   change to the new IDs and branch names, and `worktask` calls `plan start`.
 - The open issues in each repo are converted once into that repo's item files, keeping each body,
