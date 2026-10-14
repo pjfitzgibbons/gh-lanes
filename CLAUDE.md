@@ -1,8 +1,8 @@
 # gh-plan — repo instructions
 
-**GH Plan** is a planning layer over GitHub Issues: a local CLI (later a localhost web UI) that
-owns the planning fields, while GitHub Issues keeps owning identity, state, labels and
-dependencies. It is **not** an issue tracker.
+**GH Plan** is a file-native tracker: a local CLI (later a localhost web UI) over Markdown item
+files committed in the repo each item belongs to. It does not use GitHub Issues; pull requests are
+its one GitHub integration ([ADR 0008](docs/adr/0008-file-native-items.md)).
 
 Read `docs/design/0001-phase-1.md` before writing code. `docs/architecture.md` is the
 architecture, `docs/adr/` holds the decisions behind it, and `docs/requirements.md` is the spec.
@@ -34,7 +34,8 @@ Everything this repo needs is therefore stated here or committed in `.claude/`.
   a convenience.** Do not introduce a library that needs a PAT.
 - **Never use real personal data** in fixtures, tests or examples. Synthetic only.
 - **Branch, then squash.** Short-lived branches off `main`, squash-merged. Never commit straight to
-  `main`. Commit or push only when asked.
+  `main`, except for the tool's own `plan:` commits
+  ([ADR 0008](docs/adr/0008-file-native-items.md)). Commit or push only when asked.
 - **No speculative files.** Do not create a directory or file until something goes in it.
 
 ## Working agreement
