@@ -20,9 +20,10 @@ sit in git beside the work it describes.
 
 The tool lives in its own repo, `gh-plan`.
 
-Each planned project keeps its own `.tracker/` directory in its own repo. When one plan covers
-several repos ([`A1`](../requirements.md)), its `.tracker/` lists them in `config.repos`. The tool
-finds `.tracker/` by walking up from the working directory
+Each planned repo keeps its own `.tracker/` directory, and every `.tracker/` is a plan of that
+repo's items. When one plan covers several repos ([`A1`](../requirements.md)), any of their
+`.tracker/` directories can list the others by path in `config.repos` and span them, reading their
+item files in place ([ADR 0008](0008-file-native-items.md)). The tool finds `.tracker/` by walking up from the working directory
 ([design 0001, *Discovery*](../design/0001-phase-1.md#discovery)).
 
 <a id="alternatives"></a>
@@ -44,4 +45,5 @@ finds `.tracker/` by walking up from the working directory
 - The tool's own repo is planned with its own `.tracker/`, so its backlog is the first thing it
   tracks.
 - The tool can be released and installed independently of any project's data.
-- A plan that spans repos has one home. The other repos it lists hold no planning data.
+- A plan that spans repos has one home, which holds the milestones that span them. Each repo it
+  lists keeps its own items in its own `.tracker/`.

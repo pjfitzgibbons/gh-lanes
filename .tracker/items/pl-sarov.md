@@ -7,7 +7,6 @@ ordinal: 100
 lane: infra
 milestone: bootstrap
 started: 2026-10-14T13:19:36Z
-started_via: hand
 ---
 ### Summary
 gh-plan becomes its own tracker. An item is a Markdown file with YAML front matter, committed in the repo it belongs to, and GitHub Issues is no longer used; pull requests are the one GitHub integration. This ticket records the decision: ADR 0008 (file-native items), ADR 0007 rewritten in place (every tracker file is YAML, items and milestones are Markdown), and the requirements it changes or adds. The design and architecture docs follow in a separate ticket.

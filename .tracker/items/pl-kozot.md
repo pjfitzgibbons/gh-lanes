@@ -11,7 +11,7 @@ milestone: bootstrap
 Change the models in `model.py` and `config.py` to the fields ADR 0008 puts in the files. GitHub identity goes, and the tracker owns title, labels, parent and blocked-by.
 
 ### Scope
-- Item front matter, in this order: `title`, `status`, `estimate`, `priority`, `ordinal`, `lane`, `milestone`, `labels`, `parent`, `blocked_by`, `started`, `started_via`, `baseline`. The ID is the file stem. `issue`, `node_id`, `draft` and `repo` go.
+- Item front matter, in this order: `title`, `status`, `estimate`, `priority`, `ordinal`, `lane`, `milestone`, `labels`, `parent`, `blocked_by`, `started`, `baseline`. The ID is the file stem. `issue`, `node_id`, `draft` and `repo` go.
 - `blocked_by` entries are `"<id> - <title>"`; the ID part is parsed and authoritative (`G7`).
 - Milestone front matter: `title` and `order`; the exit criterion is the body. The ID is the file stem.
 - Config: `prefix` added; `repos` names member repos by path only; `stale_after_minutes` and `write_pause_seconds` go.

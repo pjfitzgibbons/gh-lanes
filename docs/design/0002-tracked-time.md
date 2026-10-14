@@ -7,8 +7,8 @@
 ## 1. Scope
 
 **In:** `hours_per_point` calibration · the `TimeSource` interface · the `actual_time` snapshot in
-item files · snapshot on close in reconcile · the post-merge hook · `plan time` · `plan report
-time` · validation rules · index columns.
+item files · the snapshot in the write that sets `Done` · the post-merge hook · `plan time` ·
+`plan report time` · validation rules · index columns.
 
 **Out:** any specific vendor adapter, and how a networked adapter authenticates. Both are settled
 when the first adapter is built. §10 records how each surveyed tracker would map onto the
@@ -17,15 +17,12 @@ interface.
 <a id="config"></a>
 ## 2. Config
 
-Two keys join `.tracker/config.json` ([design 0001, *Config*](0001-phase-1.md#config)), shown here without the rest of the file:
+Two keys join `.tracker/config.yml` ([design 0001, *Config*](0001-phase-1.md#config)), shown here without the rest of the file:
 
-```json
-{
-  "hours_per_point": 8.0,
-  "time_source": {
-    "kind": "timewarrior"
-  }
-}
+```yaml
+hours_per_point: 8.0
+time_source:
+  kind: timewarrior
 ```
 
 `hours_per_point` defaults to 8.0, one point to one working day. A project sizing a point as an hour sets 1.0. With no `time_source`, tracked time is off. `time_source.kind` selects the adapter module in `src/ghplan/timekeeping/`.
@@ -50,37 +47,34 @@ class ActualTime(BaseModel):
     entries: int                 # how many closed entries were summed
     running: int = 0             # entries still open at fetch time, not counted
     source: str                  # time_source.kind that produced it
-    key: str                     # the tag queried, e.g. "example-org/web-app#23"
+    key: str                     # the tag queried: the item ID, e.g. "wa-tunep"
     fetched_at: datetime
 
 class Item(BaseModel):
     ...
-    actual_time: ActualTime | None = None   # written by reconcile and `plan time --apply` only
+    actual_time: ActualTime | None = None   # written by `set --status Done` and `plan time --apply` only
 ```
 
-In an item file, after every other key ([design 0001, *File format*](0001-phase-1.md#file-format)):
+In an item's front matter, after every other key ([design 0001, *File format*](0001-phase-1.md#file-format)):
 
-```json
-{
-  "issue": 23,
-  "node_id": "I_kwDOA1b2c3",
-  "draft": false,
-  "repo": "web-app",
-  "estimate": 2,
-  "priority": "P0",
-  "status": "Done",
-  "ordinal": 100,
-  "lane": "frontend",
-  "milestone": "beta",
-  "actual_time": {
-    "seconds": 15300,
-    "entries": 7,
-    "running": 0,
-    "source": "timewarrior",
-    "key": "example-org/web-app#23",
-    "fetched_at": "2026-10-11T18:04:00Z"
-  }
-}
+```yaml
+---
+title: Retry failed webhook deliveries
+status: Done
+estimate: 2
+priority: P0
+ordinal: 100
+lane: api
+milestone: beta
+started: 2026-10-10T09:12:00Z
+actual_time:
+  seconds: 15300
+  entries: 7
+  running: 0
+  source: timewarrior
+  key: wa-tunep
+  fetched_at: 2026-10-11T18:04:00Z
+---
 ```
 
 15300 seconds is 4.25 h.
@@ -88,20 +82,21 @@ In an item file, after every other key ([design 0001, *File format*](0001-phase-
 Estimated hours are never stored. They are `estimate × hours_per_point`, computed at report time,
 so changing the calibration rescales every report without touching an item file.
 
-`actual_time` is tracker-owned and is never pushed to GitHub. Nobody types it: `set` has no flag
-for it, and `validate` does not check it against anything except its own shape.
+Nobody types `actual_time`: `set` has no flag for it, and `validate` does not check it against
+anything except its own shape.
 
 <a id="key"></a>
 ## 4. The correlation key
 
-A time entry belongs to an item when it carries the tag `<owner>/<repo>#<n>`, built from
-`config.repos[repo].gh` and `issue`. Whoever starts the timer adds the tag. With Timewarrior:
+A time entry belongs to an item when it carries the item's ID as a tag
+([ADR 0006](../adr/0006-tracked-time.md)). Whoever starts the timer adds the tag. With Timewarrior:
 
 ```
-timew start "example-org/web-app#23"
+timew start wa-tunep
 ```
 
-`plan show N` prints the tag, so it can be copied rather than typed.
+A time tracker's tags are global, not per repo. The prefix keeps the tags of two repos apart, so
+an ID tags one item wherever the timer runs.
 
 An entry can carry other tags too, and one entry with two item tags counts toward both items. To
 split a span between items, split it in the time tracker.
@@ -113,10 +108,8 @@ split a span between items, split it in the time tracker.
 # timekeeping/__init__.py
 @dataclass(frozen=True)
 class WorkKey:
-    tag: str                          # "example-org/web-app#23"
-    repo: str                         # "example-org/web-app"
-    issue: int
-    branches: tuple[str, ...] = ()    # for adapters that match on git branch
+    tag: str                          # the item ID, "wa-tunep"
+    branches: tuple[str, ...] = ()    # for adapters that match on git branch: <type>/<id>-<slug>
 
 @dataclass(frozen=True)
 class TimeEntry:
@@ -154,29 +147,28 @@ else in `timekeeping/` is.
 <a id="lifecycle"></a>
 ## 6. When the snapshot is taken
 
-The trigger is the issue closing. A PR that merges with `Closes #N` closes the issue, so a merge
-reaches the trigger through that. A merge that leaves the issue open takes no snapshot, because
-time is counted per issue, not per PR.
+The trigger is the write that sets `status: Done`: `plan set <id> --status Done`, on the item's
+branch before it merges ([architecture §7.3](../architecture.md#finish)). The snapshot is committed
+with the work and reaches the default branch in the same squash merge.
 
 | Event | What happens |
 |---|---|
-| Reconcile sees a closed issue whose item is not `Done` | Sets `status: Done` and writes `actual_time` in the same file write. Dry by default, like all of reconcile |
-| No `time_source` configured | Reconcile sets `Done` and writes no `actual_time` |
-| Time tracker fails | Reconcile still sets `Done`, prints the `TimeSourceError`, and leaves `actual_time` absent. `validate` warns until someone runs `plan time N --apply` |
-| Issue reopened | The snapshot stays: it is what was tracked up to that close. The next close overwrites it, and git keeps the earlier value |
-| Time logged after the close | Not counted until `plan time N --apply` |
-| Issue transferred | Both parts of the tag change, so entries tagged with the old key are missed. Phase 3 transfer handling adds the old key to the query |
+| `plan set <id> --status Done` | Writes `status: Done` and `actual_time` in the same file write |
+| No `time_source` configured | `set` writes `Done` and no `actual_time` |
+| Time tracker fails | `set` still writes `Done`, prints the `TimeSourceError`, and leaves `actual_time` absent. `validate` warns until someone runs `plan time <id> --apply` |
+| `Done` typed by hand in an editor | No snapshot. `validate` warns, and the post-merge hook reports it once the merge arrives (§6.1) |
+| Item reopened | The snapshot stays: it is what was tracked up to that `Done`. The next `Done` overwrites it, and git keeps the earlier value |
+| Time logged after `Done`, such as review fixes | Not counted until `plan time <id> --apply` |
 
-Reconcile collects the items that close in one run and queries the tracker once per item. All of
-the writes are local file writes, so nothing here touches GitHub's rate limits.
+The snapshot is a local file write, so nothing here touches the network except the adapter.
 
 <a id="post-merge"></a>
 ### 6.1 The post-merge hook
 
-gh-plan has no webhooks, so it notices a close only when reconcile runs. A `post-merge` git hook
-runs a dry reconcile at the moment the merged work arrives locally, which is usually `git pull` on
-`main` right after the PR merges. It reports what is pending, and the write happens later on a
-branch.
+A `Done` written without its snapshot, by hand or while the time tracker was down, reaches the
+default branch with the merge. A `post-merge` git hook reports it at the moment the merged work
+arrives locally, which is usually `git pull` on the default branch right after the PR merges. The
+write happens later on a branch.
 
 ```python
 #!/usr/bin/env python3
@@ -190,7 +182,7 @@ PLAN_ROOT = '/Users/example/code/web-app'
 
 try:
     subprocess.run(
-        [PLAN, "reconcile", "--closed", "--quiet"],
+        [PLAN, "time", "--missing", "--quiet"],
         env={**os.environ, "PLAN_ROOT": PLAN_ROOT},
     )
 except OSError as exc:
@@ -198,30 +190,26 @@ except OSError as exc:
 sys.exit(0)
 ```
 
-- `--closed` limits reconcile to one case: a closed issue whose item is not `Done`. Applied, that
-  case moves the item to `Done` and takes the snapshot. The other reconcile cases (new issues with
-  no item file, orphans, reopened issues) are left for a full run, because they create files or
-  need a human decision.
-- `--closed` refreshes the index first, however recent it is. An index pulled a few minutes before
-  the PR merged is inside `stale_after_minutes` and would miss the close.
-- It writes nothing. The hook usually fires on `main`, and item-file changes go through a branch
-  like any other commit. Whoever pulled runs `plan reconcile --closed --apply` on a branch, and
-  the snapshot is taken then.
+- `--missing` limits `plan time` to `Done` items with no snapshot, and prints the total each would
+  get.
+- It writes nothing. The hook usually fires on the default branch, and item-file changes go through
+  a branch like any other commit. Whoever pulled runs `plan time <id> --apply` on a branch, and the
+  snapshot is taken then.
 - It never fails the merge. Git ignores a `post-merge` exit status, and the hook exits 0 whatever
-  `plan` returns. If `gh` or the time tracker is unreachable, `plan` prints one line and the item
-  is picked up by the next run. If `plan` itself is missing, the hook prints one line saying so.
-- `--quiet` prints only what is pending, e.g. `#23 closed → Done, 4.25 h from 7 entries`. It
-  prints nothing when nothing is pending.
-- It is installed in every configured repo. A PR merged in `billing-api` arrives when someone
-  pulls `billing-api`, and discovery walks up from the working directory, so a sibling repo at
-  `../billing-api` would never find `.tracker/`. Each hook sets `PLAN_ROOT` to the absolute path
-  of the tracker root, so it works from any of them. A configured repo whose `path` is not a git
-  checkout on this machine is skipped with a message.
-- `plan hooks install` writes this hook into each configured repo, and the pre-commit hook that
-  runs `plan validate` into the repo that holds `.tracker/`. Both call `plan` by the absolute
-  path of the executable that ran the install, because git hooks often run without the login
-  shell's `PATH` (GUI git clients, virtualenvs). After `plan` moves, run the install again.
-- Both hooks are Python scripts. A path with a space or a shell metacharacter in it is valid,
+  `plan` returns. If the time tracker is unreachable, `plan` prints one line and the item is picked
+  up by the next run. If `plan` itself is missing, the hook prints one line saying so.
+- `--quiet` prints only what is pending, e.g. `wa-tunep is Done with no snapshot · 4.25 h from 7
+  entries`. It prints nothing when nothing is pending.
+- It is installed in every repo of the plan. A PR merged in `billing-api` arrives when someone
+  pulls `billing-api`. Each hook sets `PLAN_ROOT` to the absolute path of the plan's root, so it
+  reports against the whole plan from any of them. A member repo whose `path` is not a git checkout
+  on this machine is skipped with a message.
+- `plan hooks install` writes this hook, the `post-checkout` hook of
+  [design 0001, *Commands*](0001-phase-1.md#commands) and a pre-commit hook that runs
+  `plan validate` into each repo of the plan. Each calls `plan` by the absolute path of the
+  executable that ran the install, because git hooks often run without the login shell's `PATH`
+  (GUI git clients, virtualenvs). After `plan` moves, run the install again.
+- The hooks are Python scripts. A path with a space or a shell metacharacter in it is valid,
   and a shell script would split it or run it as syntax. The installer writes `PLAN` and
   `PLAN_ROOT` with `repr()`, so they are Python string literals, and `subprocess.run` gets an
   argument list, so no shell parses them. The shebang is `/usr/bin/env python3` because a shebang
@@ -232,19 +220,19 @@ sys.exit(0)
 - It refuses to overwrite a hook it did not write, and prints the lines to add instead.
 
 Git runs `post-merge` after a merge or a fast-forward pull, and not after `git pull --rebase`. With
-`pull.rebase` set, the hook does not fire, and an explicit `plan reconcile --closed --apply` covers
-the gap.
+`pull.rebase` set, the hook does not fire, and `plan validate` still warns about each `Done` item
+with no snapshot.
 
 <a id="commands"></a>
 ## 7. Commands
 
 | Command | What it does |
 |---|---|
-| `plan time N` | Prints the stored snapshot next to a live total from the tracker, and the difference. Writes nothing |
-| `plan time N --apply` | Takes a fresh snapshot and writes it. Works on open items too, for a mid-flight check that gets committed |
+| `plan time <id>` | Prints the stored snapshot next to a live total from the tracker, and the difference. Writes nothing |
+| `plan time <id> --apply` | Takes a fresh snapshot and writes it. Works on items not yet `Done` too, for a mid-flight check that gets committed |
+| `plan time --missing` | Lists `Done` items with no snapshot and the total each would get. Writes nothing; the post-merge hook runs it (§6.1) |
 | `plan report time [--milestone M]` | Estimate against actuals, per item and in total (§8) |
-| `plan reconcile --closed` | Reconcile limited to closed issues whose item is not `Done`. Dry by default; the post-merge hook runs it dry (§6.1) |
-| `plan hooks install` | Writes the post-merge hook into every configured repo and the pre-commit hook into the repo holding `.tracker/` (§6.1) |
+| `plan hooks install` | Writes the `post-checkout`, post-merge and pre-commit hooks into every repo of the plan (§6.1) |
 
 `plan time` and `plan report time` take `--json`, like every other read.
 
@@ -253,13 +241,13 @@ the gap.
 
 ```
 $ plan report time --milestone beta
-#     est  est h   actual h   variance
-#14    3    24.0     19.5      -4.5   -19%
-#9     5    40.0     52.0     +12.0   +30%
-#23    2    16.0      4.3     -11.7   -73%
-#31    3    24.0       —          no snapshot
+ID         est  est h   actual h   variance
+wa-ridal    3    24.0     19.5      -4.5   -19%
+wa-mefut    5    40.0     52.0     +12.0   +30%
+wa-tunep    2    16.0      4.3     -11.7   -73%
+ba-kipes    3    24.0       —          no snapshot
 ───
-       10   80.0     75.8      -4.2    -5%     (3 of 4 items with a snapshot)
+            10   80.0     75.8      -4.2    -5%     (3 of 4 items with a snapshot)
 hours per point: configured 8.0 · observed 7.6
 ```
 
@@ -270,8 +258,6 @@ hours per point: configured 8.0 · observed 7.6
   Its row sums its children's estimates and snapshots, plus its own snapshot if time was tagged to
   the parent itself. That row is for display only: totals count each child's estimate and snapshot
   once, from the child's own row, and add only the time tagged to the parent itself.
-- An issue closed as not planned (GitHub's `stateReason` is `NOT_PLANNED`) is left out of the report
-  and its totals. A last line names how many were left out, so the omission is visible.
 - Observed hours per point is total actual hours over total estimated points, with the same rule,
   so no estimate or snapshot is counted twice.
 
@@ -287,12 +273,14 @@ Rules added to [design 0001 §9](0001-phase-1.md#validation):
 | Rule | Level | Message |
 |---|---|---|
 | `time_source.kind` names an installed adapter | ERROR | `time_source kind 'x' has no adapter` |
-| `actual_time` only on an item with an issue | ERROR | `#N is a draft and has actual_time` |
-| Done item has a snapshot, when a `time_source` is configured | WARN | `#N is Done with no tracked time — run plan time N --apply` |
-| No timer was running at snapshot | WARN | `#N had 1 timer running at snapshot; that time is not counted` |
-| Snapshot has entries | WARN | `#N is Done with 0 tracked entries for owner/repo#N` |
+| Done item has a snapshot, when a `time_source` is configured | WARN | `wa-tunep is Done with no tracked time — run plan time wa-tunep --apply` |
+| No timer was running at snapshot | WARN | `wa-tunep had 1 timer running at snapshot; that time is not counted` |
+| Snapshot has entries | WARN | `wa-tunep is Done with 0 tracked entries tagged wa-tunep` |
+| `started` is not later than the first tracked time, when a `time_source` is configured | WARN | `wa-tunep started 2026-10-14T09:00:00Z, after time tracked from 2026-10-13T16:20:00Z` |
 
-The two "Done" warnings skip an issue closed as not planned, because no time is expected on it.
+A `started` later than the first tracked time means the item was started a second time, after a
+lost push race or from another branch, and the first start never reached the default branch
+([architecture §7.1](../architecture.md#start)).
 
 <a id="adapters"></a>
 ## 10. How each tracker would implement `entries`
@@ -305,7 +293,7 @@ interface is known to fit more than one.
 | Timewarrior | `timew export <tag>` over a subprocess. Returns a JSON array of `id`, `start`, `end`, `tags`, `annotation` | tag | Local, no credential. Its documented sample output has a trailing comma, so parse leniently 🔍 |
 | Kimai | `GET /api/timesheets?tags[]=<tag>`, paginated with `page` and `size` | tag | Bearer token. Requests fail if none of the tags exist, which the adapter treats as zero entries |
 | solidtime | REST, scoped to an organisation | task or tag 🔍 | API token. Endpoint details unverified 🔍 |
-| Traggo | GraphQL | key:value tag, e.g. `issue:` | Its model is only tagged time spans, with no tasks |
+| Traggo | GraphQL | key:value tag, e.g. `item:wa-tunep` | Its model is only tagged time spans, with no tasks |
 | WakaTime / Wakapi | summaries filtered by `project` and `branches` | `WorkKey.branches` | Automatic: no timer to start. WakaTime records `branch` per heartbeat; Wakapi's branch support is unverified 🔍. A summary has no per-entry ids, so the adapter synthesises one entry per day |
 | ActivityWatch | `GET /api/0/buckets/<id>/events` on `localhost:5600` | none | Records applications and windows, not tasks. Not a fit |
 | Watson | reads its frames file | tag | No release since 2.1.0 (May 2022) |
@@ -315,13 +303,12 @@ interface is known to fit more than one.
 
 - `snapshot()` is pure. It gets cases for duplicate ids, running entries, an empty list, and one
   entry carrying two item tags.
-- Reconcile is tested with a fake `TimeSource` covering three cases: it returns entries, it returns
-  none, and it raises. The raise case asserts the item still reaches `Done`.
-- `reconcile --closed` gets a case showing it leaves a new issue with no item file untouched.
-- `plan hooks install` is tested in temporary git repos: it writes both hooks with an absolute
-  path to `plan`, writes the post-merge hook into a sibling configured repo with `PLAN_ROOT`
-  set, skips a configured path that is not a git checkout, and refuses to overwrite a hook it did
-  not write.
+- `set --status Done` is tested with a fake `TimeSource` covering three cases: it returns entries,
+  it returns none, and it raises. The raise case asserts the item still reaches `Done`.
+- `plan time --missing` gets a case showing it writes nothing.
+- `plan hooks install` is tested in temporary git repos: it writes every hook with an absolute
+  path to `plan`, writes the hooks into a sibling member repo with `PLAN_ROOT` set, skips a member
+  path that is not a git checkout, and refuses to overwrite a hook it did not write.
 - The installed hooks are run against a stub `plan` placed at a path with a space and shell
   metacharacters in it, such as `my tools/$(touch pwned);/plan`. The test asserts that the stub
   ran with the expected arguments and `PLAN_ROOT`, that `pwned` was not created, and that the
@@ -336,4 +323,4 @@ interface is known to fit more than one.
 |---|---|---|
 | C6 | Planned against actual, per item and per milestone | `plan report time`, in hours, per item and per milestone |
 | C9 | Tracked effort per item, calibrated against points | `actual_time` snapshot, `hours_per_point`, observed hours per point in the report |
-| G5 | History of tracking data | the snapshot is committed JSON; `git log -p` shows every re-snapshot |
+| G5 | History of tracking data | the snapshot is committed in the item file; `git log -p` shows every re-snapshot |

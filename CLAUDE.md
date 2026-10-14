@@ -52,12 +52,16 @@ Everything this repo needs is therefore stated here or committed in `.claude/`.
 ## Design invariants: do not break these without changing the architecture
 
 The authoritative list, with the reasons, is
-[`docs/architecture.md` §12](docs/architecture.md#invariants).
+[`docs/architecture.md` §10](docs/architecture.md#invariants). The two lists keep the same numbers.
 
 1. **Git is the database. SQLite is a disposable index**, rebuilt by `plan reindex`.
-2. **Field ownership is disjoint.** The only write-back to GitHub is the `[N]` title prefix.
-3. **`gh.py`, `git.py` and the `timekeeping/` adapters are the only modules that spawn a process or
-   open a network connection.** Everything else stays pure and testable without a network.
-4. **GitHub first, then the file.** Always choose the failure mode that repairs itself.
-5. **Estimates are `Literal[1, 2, 3, 5]`.** 8 and 13 mean "split this" and are not representable.
-6. **Pace GitHub mutations** by `write_pause_seconds` (default 1). The secondary rate limit allows 80 content-generating requests a minute and 500 an hour.
+2. **The default branch carries the current state.** Everything reaches it by PR, except `plan:` commits.
+3. **A tool commit touches one item's `status` and `started`, plus `ready.yml`**, as `plan: start <id>` or `plan: stop <id>`.
+4. **`started` is written once.** `plan stop` leaves it, and a later start keeps it.
+5. **The only remote write is a `git push` of the tool's own commits.** Nothing goes through GitHub's API.
+6. **`gh.py`, `git.py` and the `timekeeping/` adapters are the only modules that spawn a process or open a network connection.**
+7. **Estimates are `Literal[1, 2, 3, 5]`.** 8 and 13 mean "split this" and are not representable.
+8. **An item has at most one lane.**
+9. **A parent with children has no estimate.**
+10. **A baseline is written only by freeze.**
+11. **Tracked time is read, never written.** The write that sets an item Done writes the `actual_time` snapshot.

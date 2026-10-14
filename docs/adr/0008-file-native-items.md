@@ -14,9 +14,9 @@ GitHub owns identity, title, body, state, labels, sub-issues and blocked-by, and
 planning fields. Keeping the two in step is most of the tool's GitHub code:
 
 - `pull` caches each repo's issues, and `reconcile` creates, closes and reports orphaned item files
-  from that cache ([architecture §6](../architecture.md#operations)).
+  from that cache.
 - `mirror` writes the `[N]` estimate prefix into issue titles, the one write-back, and every write is
-  paced by the secondary rate limit (invariant 6).
+  paced by the secondary rate limit.
 
 The planning data is meant to live beside the code and docs it plans, committed in the same repo
 ([ADR 0001](0001-git-is-the-database.md), [ADR 0002](0002-tracker-per-repo.md)). With issues on
@@ -84,22 +84,21 @@ GitHub Issues is not used.
   hook when a branch is checked out, including one just made with `git switch -c`, and after
   `git worktree add`, but not after a bare `git branch <name>`
   ([githooks(5)](https://git-scm.com/docs/githooks#_post_checkout)). The tool sets
-  `status: In Progress`, `started` (UTC, to the second) and `started_via`, regenerates
-  `ready.yml`, commits both to the default branch and pushes. It never overwrites an existing
-  `started`.
+  `status: In Progress` and `started` (UTC, to the second), regenerates `ready.yml`, commits
+  both to the default branch and pushes. It never overwrites an existing `started`.
 - The item's branch contains its start commit. `plan start` commits the start first and then
   creates the branch from it. The hook finds the branch already made, so it fast-forwards the
   branch onto the start commit if the branch has no commits of its own yet. Otherwise it writes
   the same change into the branch's working tree, and `plan validate` reports the branch as not
   containing its start.
 - `plan stop <id>` abandons a start, committing the item back to Todo on the default branch
-  and keeping `started` out of the file.
+  and leaving `started` in the file as the record of the false start.
 - The finish is the merge. The branch sets `status: Done` before it merges, and the change
   reaches the default branch in the same squash commit as the work. Its actual finish is the
   committer date of the first-parent commit on the default branch that made it Done. An item worked
   across several branches is set Done by the last of them.
-- A tool commit is curated. It touches only one item's `status`, `started` and `started_via`,
-  plus `ready.yml`. The tool builds it on the tip of the default branch through a temporary index,
+- A tool commit is curated. It touches only one item's `status` and `started`, plus
+  `ready.yml`. The tool builds it on the tip of the default branch through a temporary index,
   without checking that branch out, so nothing else in the working tree can get into it and the
   working tree does not change. Its message is fixed, `plan: start <id>` or `plan: stop <id>`, so
   `git log --grep '^plan:'` finds every one. Offline, the commit is kept locally and pushed by the
@@ -162,8 +161,9 @@ GitHub Issues is not used.
 <a id="consequences"></a>
 ## 5. Consequences
 
-- `pull`'s issue cache, `reconcile` and `mirror` go away. Invariants 2, 4 and 6 are removed, and
-  invariant 10 keeps only tracked time.
+- `pull`'s issue cache, `reconcile` and `mirror` go away. So do the invariants on disjoint field
+  ownership, writing GitHub before the file, and pacing GitHub mutations, and the invariant on
+  tracked time keeps only that time is read and never written.
 - Start, finish and Done are all read from the files and local git, so every query works offline
   and `C5` needs no GitHub read. Only sharing a start needs the network. `I5` stays a COULD.
 - The tool now owns what GitHub did: titles, bodies, labels, parents, dependencies and cycle
@@ -194,8 +194,9 @@ GitHub Issues is not used.
   [design 0002](../design/0002-tracked-time.md#post-merge). Git takes `post-checkout`'s exit status
   as the checkout's ([githooks(5)](https://git-scm.com/docs/githooks#_post_checkout)), so the hook
   always exits 0.
-- A branch for an item lives in the item's repo. Work an item needs in another repo is a child item
-  there.
+- An item is worked only in its own repo, because its branch and its start commit live there.
+  When an item also needs a change in another repo, that change is a child item in the other repo,
+  with `parent` naming the first item.
 - A plan across repos depends on their checkouts sitting where the plan's config says. A member
   missing on disk is reported, and the plan is answered without it.
 - A change that touches several repos, such as moving items into a shared milestone, is one commit

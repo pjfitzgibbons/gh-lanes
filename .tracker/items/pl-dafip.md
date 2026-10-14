@@ -15,8 +15,8 @@ blocked_by:
 Record an item's start as ADR 0008 decides: a curated tool commit on the default branch, pushed, that the item's branch contains.
 
 ### Scope
-- `plan start <id>`: set `status: In Progress`, `started` (UTC, to the second) and `started_via`, build the commit on the default branch's tip through a temporary index, push it, then create the item's branch from it. An existing `started` is never overwritten.
-- `plan stop <id>`: commit the item back to Todo and drop `started`.
+- `plan start <id>`: set `status: In Progress` and `started` (UTC, to the second), build the commit on the default branch's tip through a temporary index, push it, then create the item's branch from it. An existing `started` is never overwritten.
+- `plan stop <id>`: commit the item back to Todo; `started` stays as the record of the false start.
 - The `post-checkout` hook, written by `plan hooks install`: on a branch carrying an ID, start the item, then fast-forward the branch onto the start commit if it has no commits yet, or else write the change into its working tree. It always exits 0.
 - The default branch comes from `refs/remotes/origin/HEAD`.
 - Offline, the commit stays local until the next push.

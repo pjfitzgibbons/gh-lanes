@@ -2,6 +2,8 @@
 
 These are synthetic `.tracker/` trees and the `gh` output a pull would record for them. The suite runs against them with no network. Every owner is `example-org`, and every node ID is invented (`I_example_<repo>_<n>`). No real name, login, email, node ID or repo appears here, and `test_fixtures.py` checks the owners.
 
+The trees still use the JSON layout that came before [ADR 0007](../../docs/adr/0007-tracker-files-are-yaml.md) and [ADR 0008](../../docs/adr/0008-file-native-items.md). The converter (pl-nahuj) turns each one into `config.yml`, `milestones/<id>.md` and `items/<id>.md` with YAML front matter, drops `.cache/gh/`, and replaces the trees for rules that no longer exist. Until then this README describes the files as they are.
+
 ## Layout
 
 Each tree is a tracker root. The recorded output sits where a real pull caches it, `.tracker/.cache/gh/<repo>.json`, one file per configured repo, named by the repo's short name in `config.repos`.
@@ -61,7 +63,7 @@ Only two trees fail before any rule runs, because the schema itself rejects thei
 
 The rule "baseline frozen for a closed milestone" has no message in §9, and milestones have no closed state, so it has no tree yet. It gets one when #15 defines it.
 
-`test_fixtures.py` maps every directory to its §9 rule. It also reads the rule table from the design doc, so adding a rule there without a tree here fails the suite.
+`test_fixtures.py` maps every directory to its §9 rule. It also reads the rule table from the design doc, so adding a rule there without a tree here fails the suite. Design 0001 §9 now lists the file-native rules, so that check is marked as an expected failure until pl-nahuj converts the trees.
 
 ## Recorded gh output
 
