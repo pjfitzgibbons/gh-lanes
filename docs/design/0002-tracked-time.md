@@ -1,5 +1,21 @@
 # Design 0002: Tracked time
 
+## Contents
+
+- [1. Scope](#scope)
+- [2. Config](#config)
+- [3. Data model](#data-model)
+- [4. The correlation key](#key)
+- [5. The `TimeSource` interface](#interface)
+- [6. When the snapshot is taken](#lifecycle)
+  - [6.1 The post-merge hook](#post-merge)
+- [7. Commands](#commands)
+- [8. `plan report time`](#report)
+- [9. Index and validation](#index)
+- [10. How each tracker would implement `entries`](#adapters)
+- [11. Testing](#testing)
+- [12. Requirements coverage](#requirements-coverage)
+
 **Implements:** [ADR 0006](../adr/0006-tracked-time.md) · **Requirements:**
 [`C6`, `C9`](../requirements.md) · **Status:** draft
 

@@ -1,5 +1,15 @@
 # gh-plan
 
+## Contents
+
+- [Time tracking](#time-tracking)
+  - [Install](#install)
+  - [Track time against an item](#track-time-against-an-item)
+  - [When an item is Done](#when-an-item-is-done)
+  - [Check an item's time](#check-an-items-time)
+  - [Report](#report)
+  - [Troubleshooting](#troubleshooting)
+
 A file-native tracker. A local CLI, `plan`, keeps each item's title, status, estimate, lane,
 priority, milestone and dependencies in a Markdown file with YAML front matter, committed in the
 repo the item belongs to. GitHub Issues isn't used. Pull requests are the one GitHub integration.

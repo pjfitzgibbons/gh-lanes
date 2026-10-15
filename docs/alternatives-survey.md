@@ -1,5 +1,18 @@
 # Alternatives survey
 
+## Contents
+
+  - [Tally](#tally)
+- [Notes per column](#notes-per-column)
+- [Corrections to earlier claims in this project](#corrections-to-earlier-claims-in-this-project)
+- [Disqualified on verified facts](#disqualified-on-verified-facts)
+- [Two ideas worth stealing regardless](#two-ideas-worth-stealing-regardless)
+- [Open tests, cheap and decisive](#open-tests-cheap-and-decisive)
+- [Verified by hands-on test, 2026-10-10](#verified-by-hands-on-test-2026-10-10)
+  - [Backlog.md — installed v1.53.0, throwaway git repo](#backlogmd--installed-v1530-throwaway-git-repo)
+  - [Leantime — source inspection of v3.11 (not a live instance)](#leantime--source-inspection-of-v311-not-a-live-instance)
+  - [Test 3 — not run](#test-3--not-run)
+
 Scored against [`requirements.md`](requirements.md). Survey 2026-10-10.
 
 **✅** native · **⚠️** workaround · **💰** paid tier · **❌** absent · **🔍** unverified
