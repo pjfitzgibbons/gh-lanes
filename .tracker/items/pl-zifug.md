@@ -1,7 +1,7 @@
 ---
 title: tt, worktask and gh-issues work from pl- IDs
 type: chore
-status: In Progress
+status: Done
 estimate: 2
 priority: P1
 ordinal: 900
