@@ -1,7 +1,7 @@
 ---
 title: "IDs: draw a word, keep the blocklist, resolve what is typed"
 type: feat
-status: In Progress
+status: Done
 estimate: 2
 priority: P1
 ordinal: 600
@@ -10,8 +10,9 @@ milestone: bootstrap
 started: 2026-10-15T00:25:36Z
 ---
 ### Summary
-Generate issue IDs as ADR 0008 decides, `<prefix>-<word>` with a random CVCVC word, and resolve the short forms people type.
-
+Generate item IDs as [design 0001, *Identity*](../../docs/design/0001-phase-1.md#identity) and
+[ADR 0008](../../docs/adr/0008-file-native-items.md) decide, `<prefix>-<word>` with a random CVCVC
+word, and resolve the short forms people type.
 ### Scope
 - The alphabet: 16 consonants and 5 vowels, about 102,000 words per repo. Record which 16 in design 0001.
 - A committed blocklist of words that read badly; a drawn word on it, or already used by a file in the repo, is drawn again.
