@@ -1,5 +1,18 @@
 # Requirements
 
+## Contents
+
+- [1. Priorities](#priorities)
+- [2. Structure (A)](#structure)
+- [3. Estimation (B)](#estimation)
+- [4. Scheduling (C)](#scheduling)
+- [5. Parallelism (D)](#parallelism)
+- [6. Dependencies and ordering (E)](#dependencies)
+- [7. States (F)](#states)
+- [8. Evidence and provenance (G)](#evidence)
+- [9. Automation (H)](#automation)
+- [10. Cost and licence (I)](#cost)
+
 These are the requirements gh-plan meets. The [alternatives survey](alternatives-survey.md) scored
 existing tools against the same list.
 

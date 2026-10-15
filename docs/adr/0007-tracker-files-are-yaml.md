@@ -1,5 +1,13 @@
 # ADR 0007: The committed tracker files are YAML, and items and milestones are Markdown
 
+## Contents
+
+- [1. Status](#status)
+- [2. Context](#context)
+- [3. Decision](#decision)
+- [4. Alternatives considered](#alternatives)
+- [5. Consequences](#consequences)
+
 <a id="status"></a>
 ## 1. Status
 

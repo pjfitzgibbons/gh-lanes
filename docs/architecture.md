@@ -1,5 +1,29 @@
 # Architecture
 
+## Contents
+
+- [1. Purpose](#purpose)
+- [2. Definitions](#definitions)
+- [3. Storage](#storage)
+- [4. Plans](#plans)
+  - [4.1 Member repos](#members)
+  - [4.2 Dependencies and parents](#dependencies)
+- [5. Identity](#identity)
+- [6. Components](#components)
+  - [6.1 Core and front ends](#front-ends)
+  - [6.2 Process boundary](#process-boundary)
+  - [6.3 Platform](#platform)
+- [7. Operations](#operations)
+  - [7.1 Start](#start)
+  - [7.2 Stop](#stop)
+  - [7.3 Finish](#finish)
+  - [7.4 Tool commits](#tool-commits)
+  - [7.5 Freeze](#freeze)
+  - [7.6 `ready.yml`](#ready-file)
+- [8. Failure modes](#failure-modes)
+- [9. Views](#views)
+- [10. Invariants](#invariants)
+
 **Requirements:** [`requirements.md`](requirements.md) · **Decisions:** [`adr/`](adr/) ·
 **Design:** [design 0001](design/0001-phase-1.md), [design 0002](design/0002-tracked-time.md)
 
