@@ -43,7 +43,10 @@ def _read_text(path: Path) -> str:
 def _load(text: str, path: Path, what: str) -> dict[str, Any]:
     try:
         data = YAML(typ="safe").load(text)
-    except YAMLError as e:  # also a duplicate key, or a tag that would build an object
+    # YAMLError covers a duplicate key and a tag that would build an object. A standard tag on a value
+    # it can't hold (2026-02-30, !!int abc, !!bool maybe) fails in the constructor as ValueError or
+    # KeyError instead.
+    except (YAMLError, ValueError, KeyError) as e:
         raise FileFormatError(f"{path}: {what} is not valid YAML: {e}") from e
     if not isinstance(data, dict):
         raise FileFormatError(f"{path}: {what} is not a mapping of keys to values")

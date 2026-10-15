@@ -137,6 +137,7 @@ def test_a_datetime_is_written_in_utc_to_the_second():
     assert "frozen_at: 2026-10-10T16:00:00Z\n" in dumps_yaml(w)
 
 
+
 # Each would be typed as something other than a string by a YAML 1.1 or 1.2 reader, or can't be
 # read plain at all.
 AMBIGUOUS = [
@@ -214,12 +215,16 @@ def test_a_leading_byte_order_mark_is_accepted_and_dropped_on_write(tmp_path):
         (b"---\nlane: !!python/object/apply:os.system [echo]\n---\n", "not valid YAML"),
         (b"---\nlane: !custom x\n---\n", "not valid YAML"),
         (b"---\ntitle: [unclosed\n---\n", "not valid YAML"),
+        (b"---\nstart: 2026-02-30\n---\n", "not valid YAML"),
+        (b"---\nestimate: !!int not-a-number\n---\n", "not valid YAML"),
+        (b"---\nratio: !!float abc\n---\n", "not valid YAML"),
+        (b"---\ndraft: !!bool maybe\n---\n", "not valid YAML"),
         (b"---\n- a list\n---\n", "not a mapping"),
         (b"---\n---\nbody\n", "not a mapping"),
         (b"---\ntitle: Caf\xe9\n---\n", "not valid UTF-8"),
     ],
     ids=["no-front-matter", "empty", "late-delimiter", "unclosed", "duplicate-key",
-         "object-tag", "unknown-tag", "bad-yaml", "list", "empty-front-matter", "latin-1"],
+         "object-tag", "unknown-tag", "bad-yaml", "bad-date", "bad-int", "bad-float", "bad-bool", "list", "empty-front-matter", "latin-1"],
 )
 def test_an_unreadable_markdown_file_is_reported_by_name(tmp_path, content, message):
     path = write(tmp_path, content)
