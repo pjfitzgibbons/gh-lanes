@@ -1,7 +1,7 @@
 ---
 title: "store.py: YAML and Markdown front matter, in one canonical form"
 type: feat
-status: In Progress
+status: Done
 estimate: 3
 priority: P1
 ordinal: 400
@@ -15,11 +15,11 @@ Read and write tracker files as ADR 0007 decides: Markdown with YAML front matte
 ### Scope
 - Split a file into front matter and body; a file with no front matter, or an unclosed one, fails naming the file.
 - Load with `YAML(typ="safe")`, which refuses object tags and duplicate keys.
-- Write the canonical form: block style, two-space indent, keys in model field order, null fields left out, UTF-8 unescaped, no line folding, a trailing newline.
+- Write the canonical form: block style, two-space indent, keys in model field order, null fields and empty lists left out, UTF-8 unescaped, no line folding, a trailing newline.
 - Quote any string a YAML 1.1 or 1.2 reader would type as something else (`no`, `yes`, `null`, `0123`, `1.10`, a date-like string).
 - Write the Markdown body back byte for byte, except that a body without a final newline gets one.
 - Pin a minimum ruamel.yaml version and use only the `YAML()` instance API.
-- Out of scope: the schemas themselves (pl-kozot) and comments, which are not kept.
+- Out of scope: the schemas themselves (pl-kozot), always double-quoting `blocked_by` entries, which needs the field names (pl-kozot), and comments, which are not kept.
 
 ### Acceptance
 - Reading then writing a canonical file gives identical bytes.
@@ -36,7 +36,7 @@ Unit tests in `tests/test_store.py`: round trip, quoting table, body preservatio
 - [ ] L3 Reliability and failure
 - [ ] L4 Performance and limits
 - [ ] L5 Observability
-- [x] L6 Compatibility and migration: replaces the JSON reader and writer; nothing reads JSON afterwards
+- [x] L6 Compatibility and migration: adds the YAML reader and writer beside the JSON ones; `read_json` and `dumps` go once pl-kozot moves config discovery to `config.yml` and pl-nahuj converts the fixtures
 - [ ] L7 Usability and accessibility
 - [x] L8 Testability: pure functions over text and paths, no network
 - [ ] L9 Operations and cost

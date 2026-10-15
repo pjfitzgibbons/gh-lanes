@@ -14,6 +14,7 @@ Change the models in `model.py` and `config.py` to the fields ADR 0008 puts in t
 ### Scope
 - Item front matter, in this order: `title`, `type`, `status`, `estimate`, `priority`, `ordinal`, `lane`, `milestone`, `labels`, `parent`, `blocked_by`, `started`, `baseline`. `type` is `Literal["feat", "bug", "chore"]` and required. The ID is the file stem. `issue`, `node_id`, `draft` and `repo` go.
 - `blocked_by` entries are `"<id> - <title>"`; the ID part is parsed and authoritative (`G7`).
+- Each `blocked_by` entry is always written double-quoted (design 0001 §6.7), through `store.py`'s writer.
 - Milestone front matter: `title` and `order`; the exit criterion is the body. The ID is the file stem.
 - Config: `prefix` added; `repos` names member repos by path only; `stale_after_minutes` and `write_pause_seconds` go.
 - Discovery finds `.tracker/config.yml`, and a `config.json` tracker fails with a pointer to the converter.
