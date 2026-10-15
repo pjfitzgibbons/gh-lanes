@@ -14,7 +14,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from ruamel.yaml import YAML
 from ruamel.yaml.emitter import Emitter
 from ruamel.yaml.error import YAMLError
@@ -22,14 +22,20 @@ from ruamel.yaml.nodes import ScalarNode
 from ruamel.yaml.representer import SafeRepresenter
 from ruamel.yaml.resolver import VersionedResolver
 
-from ghplan.model import FileFormatError
-
 DELIMITER = "---"
 _STR = "tag:yaml.org,2002:str"
 
 # YAML 1.1 types y and n as booleans too; PyYAML and ruamel.yaml leave them out, other readers don't.
 _YAML_1_1_EXTRA_BOOLS = re.compile(r"[yYnN]")
 _RESOLVER_1_1 = VersionedResolver(version=(1, 1))
+
+
+class FileFormatError(ValueError):
+    """A tracker file can't be read or doesn't match its schema. The message names the file."""
+
+
+class DoubleQuoted(str):
+    """A string the writer always double-quotes, such as a `blocked_by` entry."""
 
 
 def _read_text(path: Path) -> str:
@@ -75,6 +81,24 @@ def read_markdown(path: Path) -> tuple[dict[str, Any], str]:
     return _load(front, path, "the front matter"), body
 
 
+def load_yaml[M: BaseModel](path: Path, model: type[M]) -> M:
+    """Load a plain YAML tracker file into its schema."""
+    return _validate(path, model, read_yaml(path))
+
+
+def load_markdown[M: BaseModel](path: Path, model: type[M]) -> tuple[M, str]:
+    """Load an item or milestone file into its schema, with its Markdown body unchanged."""
+    front, body = read_markdown(path)
+    return _validate(path, model, front), body
+
+
+def _validate[M: BaseModel](path: Path, model: type[M], data: dict[str, Any]) -> M:
+    try:
+        return model.model_validate(data)
+    except ValidationError as e:
+        raise FileFormatError(f"{path}: {e}") from e
+
+
 def _ambiguous(value: str) -> bool:
     """Whether a YAML 1.1 reader would type this plain scalar as something other than a string.
 
@@ -90,6 +114,9 @@ class _Representer(SafeRepresenter):
     def represent_str(self, data: str) -> ScalarNode:
         return self.represent_scalar(_STR, data, style='"' if _ambiguous(data) else None)
 
+    def represent_double_quoted(self, data: DoubleQuoted) -> ScalarNode:
+        return self.represent_scalar(_STR, str(data), style='"')
+
     def represent_datetime(self, data: datetime) -> ScalarNode:
         # UTC to the second, "2026-10-10T16:00:00Z"; the model has already refused a naive one.
         text = data.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -97,6 +124,7 @@ class _Representer(SafeRepresenter):
 
 
 _Representer.add_representer(str, _Representer.represent_str)
+_Representer.add_representer(DoubleQuoted, _Representer.represent_double_quoted)
 _Representer.add_representer(datetime, _Representer.represent_datetime)
 
 

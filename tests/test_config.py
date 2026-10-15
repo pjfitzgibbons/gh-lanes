@@ -1,4 +1,4 @@
-"""config.py: the config.json model and `.tracker/` discovery."""
+"""config.py: the config.yml model and `.tracker/` discovery."""
 
 from datetime import date
 from pathlib import Path
@@ -7,50 +7,35 @@ import pytest
 
 from ghplan import config
 from ghplan.config import Config, NeedsConvertingError, NotFoundError, TrackerError
-from ghplan.model import dumps
+from ghplan.store import dumps_yaml
 
-# The design 0001 *Config* example, plus the two keys design 0002 adds, in the canonical form.
+# The design 0001 *Config* example, plus the `time_source` design 0002 adds, in the canonical form.
 EXAMPLE = """\
-{
-  "points_per_week": 5.0,
-  "project_start": "2026-10-13",
-  "stale_after_minutes": 15,
-  "write_pause_seconds": 1.0,
-  "hours_per_point": 8.0,
-  "time_source": {
-    "kind": "timewarrior",
-    "extra_tag": "synthetic"
-  },
-  "repos": {
-    "web-app": {
-      "path": ".",
-      "gh": "example-org/web-app"
-    },
-    "billing-api": {
-      "path": "../billing-api",
-      "gh": "example-org/billing-api"
-    }
-  },
-  "lanes": [
-    "api",
-    "frontend",
-    "docs",
-    "infra"
-  ]
-}
+prefix: wa
+points_per_week: 5.0
+project_start: 2026-10-13
+hours_per_point: 8.0
+time_source:
+  kind: timewarrior
+  extra_tag: synthetic
+repos:
+  - ../billing-api
+lanes:
+  - api
+  - frontend
+  - docs
+  - infra
 """
 
 MINIMAL = """\
-{
-  "points_per_week": 5,
-  "project_start": "2026-10-13",
-  "repos": {"web-app": {"path": ".", "gh": "example-org/web-app"}},
-  "lanes": ["api"]
-}
+prefix: wa
+points_per_week: 5
+project_start: 2026-10-13
+lanes: [api]
 """
 
 
-def make_tracker(root: Path, text: str = MINIMAL, name: str = "config.json") -> Path:
+def make_tracker(root: Path, text: str = MINIMAL, name: str = "config.yml") -> Path:
     (root / ".tracker").mkdir(parents=True)
     (root / ".tracker" / name).write_text(text, encoding="utf-8")
     return root
@@ -90,7 +75,7 @@ def test_plan_root_without_a_tracker_fails_naming_only_that_path(tmp_path):
     empty.mkdir()
     with pytest.raises(NotFoundError) as e:
         config.find_root(tmp_path, env={"PLAN_ROOT": str(empty)})
-    assert e.value.searched == [empty.resolve() / ".tracker" / "config.json"]
+    assert e.value.searched == [empty.resolve() / ".tracker" / "config.yml"]
     assert e.value.exit_code == 2
 
 
@@ -100,26 +85,26 @@ def test_not_found_names_every_path_up_to_the_filesystem_root(tmp_path):
     with pytest.raises(NotFoundError) as e:
         config.find_root(start, env={})
     searched = e.value.searched
-    assert searched[0] == start.resolve() / ".tracker" / "config.json"
-    assert searched[-1] == Path("/.tracker/config.json")
+    assert searched[0] == start.resolve() / ".tracker" / "config.yml"
+    assert searched[-1] == Path("/.tracker/config.yml")
     assert len(searched) == len(start.resolve().parents) + 1
     assert str(searched[0]) in str(e.value)
 
 
-def test_a_yaml_only_tracker_needs_converting(tmp_path):
+def test_a_json_tracker_needs_converting(tmp_path):
     """An unconverted tracker fails loudly at discovery instead of looking absent."""
     make_tracker(tmp_path / "outer")
-    yaml_only = make_tracker(tmp_path / "outer" / "inner", "points_per_week: 5\n", "config.yml")
+    json_only = make_tracker(tmp_path / "outer" / "inner", '{"points_per_week": 5}\n', "config.json")
     with pytest.raises(NeedsConvertingError) as e:
-        config.find_root(yaml_only, env={})
+        config.find_root(json_only, env={})
     assert e.value.exit_code == 2
-    assert str(yaml_only.resolve() / ".tracker" / "config.yml") in str(e.value)
-    assert "Convert" in str(e.value)
+    assert str(json_only.resolve() / ".tracker" / "config.json") in str(e.value)
+    assert "plan convert" in str(e.value)
 
 
-def test_a_converted_tracker_ignores_a_leftover_yaml_config(tmp_path):
+def test_a_converted_tracker_ignores_a_leftover_json_config(tmp_path):
     make_tracker(tmp_path)
-    (tmp_path / ".tracker" / "config.yml").write_text("points_per_week: 5\n", encoding="utf-8")
+    (tmp_path / ".tracker" / "config.json").write_text('{"points_per_week": 5}\n', encoding="utf-8")
     assert config.find_root(tmp_path, env={}) == tmp_path.resolve()
 
 
@@ -136,69 +121,79 @@ def test_defaults_to_the_working_directory_and_environment(tmp_path, monkeypatch
 def test_loads_the_design_example(tmp_path):
     tracker = config.discover(make_tracker(tmp_path, EXAMPLE), env={})
     c = tracker.config
+    assert c.prefix == "wa"
     assert c.points_per_week == 5.0
     assert c.project_start == date(2026, 10, 13)
-    assert c.repos["billing-api"].gh == "example-org/billing-api"
+    assert c.repos == ["../billing-api"]
     assert c.lanes == ["api", "frontend", "docs", "infra"]
     assert c.time_source.kind == "timewarrior"
     assert c.time_source.model_extra == {"extra_tag": "synthetic"}
 
 
 def test_the_example_is_canonical(tmp_path):
-    assert dumps(config.load(make_tracker(tmp_path, EXAMPLE))) == EXAMPLE
+    assert dumps_yaml(config.load(make_tracker(tmp_path, EXAMPLE))) == EXAMPLE
 
 
 def test_defaults(tmp_path):
     c = config.load(make_tracker(tmp_path))
-    assert c.stale_after_minutes == 15
-    assert c.write_pause_seconds == 1.0
     assert c.hours_per_point == 8.0
     assert c.time_source is None
+    assert c.repos == []  # a repo planned on its own
+
+
+def test_no_repos_is_left_out_when_written(tmp_path):
+    assert "repos" not in dumps_yaml(config.load(make_tracker(tmp_path)))
 
 
 @pytest.mark.parametrize(
     ("change", "message"),
     [
         ({"lanes": ["api", "api"]}, "lanes repeats api"),
+        ({"repos": ["../b", "../b"]}, "repos repeats ../b"),
         ({"statuses": ["Todo", "Done"]}, "statuses"),
         ({"lanes": []}, "lanes"),
-        ({"repos": {}}, "repos"),
         ({"points_per_week": 0}, "points_per_week"),
+        ({"points_per_week": "5"}, "points_per_week"),
         ({"points_per_week": float("inf")}, "points_per_week"),
         ({"hours_per_point": float("nan")}, "hours_per_point"),
-        ({"write_pause_seconds": -1}, "write_pause_seconds"),
-        ({"repos": {"x": {"path": ".", "gh": "no-slash"}}}, "gh"),
-        ({"repos": {"x": {"path": "/abs/app", "gh": "o/r"}}}, "must be relative"),
-        ({"repos": {"x": {"path": ".", "gh": "-org/r"}}}, "not owner/name"),
-        ({"repos": {"x": {"path": ".", "gh": "org_x/r"}}}, "not owner/name"),
-        ({"repos": {"x": {"path": ".", "gh": "o/r/extra"}}}, "not owner/name"),
-        ({"repos": {"x": {"path": ".", "gh": "o/.."}}}, "not owner/name"),
-        ({"repos": {"x": {"path": ".", "gh": "ö/r"}}}, "not owner/name"),
-        ({"repos": {"x": {"path": ".", "gh": "o/r\n"}}}, "not owner/name"),
-        ({"repos": {"x": {"path": ".", "gh": "o/r", "branch": "main"}}}, "branch"),
+        ({"project_start": "2026-10-13"}, "project_start"),
+        ({"prefix": "WA"}, "lowercase letters"),
+        ({"prefix": "w-a"}, "lowercase letters"),
+        ({"prefix": ""}, "lowercase letters"),
+        ({"prefix": "wä"}, "lowercase letters"),
+        ({"repos": ["/abs/app"]}, "must be relative"),
+        ({"repos": {"billing-api": {"path": "../billing-api", "gh": "o/r"}}}, "repos"),
+        ({"stale_after_minutes": 15}, "stale_after_minutes"),
+        ({"write_pause_seconds": 1.0}, "write_pause_seconds"),
         ({"lanse": ["api"]}, "lanse"),
     ],
 )
 def test_rejects_bad_config(change, message):
-    data = {
-        "points_per_week": 5,
-        "project_start": "2026-10-13",
-        "repos": {"web-app": {"path": ".", "gh": "example-org/web-app"}},
-        "lanes": ["api"],
-    } | change
+    data = {"prefix": "wa", "points_per_week": 5, "project_start": date(2026, 10, 13),
+            "lanes": ["api"]} | change
     with pytest.raises(ValueError, match=message):
+        Config.model_validate(data)
+
+
+@pytest.mark.parametrize("missing", ["prefix", "points_per_week", "project_start", "lanes"])
+def test_required_keys(missing):
+    data = {"prefix": "wa", "points_per_week": 5, "project_start": date(2026, 10, 13),
+            "lanes": ["api"]}
+    del data[missing]
+    with pytest.raises(ValueError, match=missing):
         Config.model_validate(data)
 
 
 @pytest.mark.parametrize(
     "content",
-    [b"", b'{"lanes": ["api"\n', b'{"points_per_week": 5}\n', b"[]\n", b"\xff"],
-    ids=["empty", "malformed", "incomplete", "not-an-object", "not-utf-8"],
+    [b"", b"lanes: [api\n", b"points_per_week: 5\n", b"- api\n", b"\xff",
+     MINIMAL.replace("points_per_week: 5", "points_per_week: five").encode()],
+    ids=["empty", "malformed", "incomplete", "not-a-mapping", "not-utf-8", "wrong-type"],
 )
 def test_unusable_config_file_is_a_tracker_error(tmp_path, content):
     root = make_tracker(tmp_path)
-    (root / ".tracker" / "config.json").write_bytes(content)
-    with pytest.raises(TrackerError, match="config.json") as e:
+    (root / ".tracker" / "config.yml").write_bytes(content)
+    with pytest.raises(TrackerError, match="config.yml") as e:
         config.load(root)
     assert e.value.exit_code == 2
 
@@ -206,24 +201,18 @@ def test_unusable_config_file_is_a_tracker_error(tmp_path, content):
 # Paths the rest of the tool reads
 
 
-@pytest.mark.parametrize("gh", ["example-org/web-app", "a1/repo.name_2", "o/.github"])
-def test_accepts_github_names(gh):
-    assert config.Repo(path="../sibling", gh=gh).gh == gh
-
-
-def test_repo_path_is_relative_to_the_tracker_root(tmp_path):
+def test_repo_paths_are_relative_to_the_tracker_root(tmp_path):
     tracker = config.discover(make_tracker(tmp_path / "web-app", EXAMPLE), env={})
-    assert tracker.repo_path("web-app") == (tmp_path / "web-app").resolve()
-    assert tracker.repo_path("billing-api") == (tmp_path / "billing-api").resolve()
+    assert tracker.repo_paths() == [(tmp_path / "billing-api").resolve()]
 
 
 def test_milestones_are_discovered_by_glob(tmp_path):
     tracker = config.discover(make_tracker(tmp_path), env={})
     milestones = tracker.tracker_dir / "milestones"
     milestones.mkdir()
-    for name in ("phase-2.json", "phase-1.json", "notes.md", "old.yml"):
+    for name in ("phase-2.md", "phase-1.md", "old.json", "notes.txt"):
         (milestones / name).write_text("", encoding="utf-8")
-    assert [p.name for p in tracker.milestone_files()] == ["phase-1.json", "phase-2.json"]
+    assert [p.name for p in tracker.milestone_files()] == ["phase-1.md", "phase-2.md"]
 
 
 def test_no_milestones_directory_means_no_milestones(tmp_path):
@@ -231,6 +220,11 @@ def test_no_milestones_directory_means_no_milestones(tmp_path):
 
 
 def test_loading_a_root_with_no_config_is_a_tracker_error(tmp_path):
-    with pytest.raises(TrackerError, match="config.json") as e:
+    with pytest.raises(TrackerError, match="config.yml") as e:
         config.load(tmp_path)
     assert e.value.exit_code == 2
+
+
+def test_this_repos_config_validates():
+    root = Path(__file__).parents[1]
+    assert config.load(root).prefix == "pl"
