@@ -1,12 +1,13 @@
 ---
 title: tt, worktask and gh-issues work from pl- IDs
 type: chore
-status: Todo
+status: In Progress
 estimate: 2
 priority: P1
 ordinal: 900
 lane: infra
 milestone: bootstrap
+started: 2026-10-15T01:23:45Z
 ---
 ### Summary
 Time tagging and the work skills read GitHub issue numbers from branch names. With `pl-<word>` IDs and `<type>/<id>-<slug>` branches, tt logs nothing and `worktask` cannot pick up an item. This ticket moves them to the new IDs, so dogfooding records time.

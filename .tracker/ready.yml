@@ -1,14 +1,5 @@
-generated_at: 2026-10-15T01:12:24Z
+generated_at: 2026-10-15T01:23:45Z
 ready:
-  - id: pl-zifug
-    title: tt, worktask and gh-issues work from pl- IDs
-    estimate: 2
-    duration_weeks: 0.4
-    lane: infra
-    milestone: bootstrap
-    priority: P1
-    focus: false
-    unblocks: []
   - id: pl-johoh
     title: "Archive: Done items move to .tracker/archive/"
     estimate: 2
