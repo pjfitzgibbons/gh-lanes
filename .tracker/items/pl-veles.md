@@ -29,7 +29,7 @@ Move gh-plan's open GitHub issues into item files once, then close them on GitHu
 - [ ] L3 Reliability and failure
 - [ ] L4 Performance and limits
 - [ ] L5 Observability
-- [x] L6 Compatibility and migration: one-way, run once; GitHub keeps the closed issues as history
+- [x] L6 Compatibility and migration: one-way, run once; the completed closed issues follow in pl-datob
 - [ ] L7 Usability and accessibility
 - [ ] L8 Testability
 - [x] L9 Operations and cost: about 50 closes, paced under the secondary rate limit
