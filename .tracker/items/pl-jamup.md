@@ -1,12 +1,13 @@
 ---
 title: "IDs: draw a word, keep the blocklist, resolve what is typed"
 type: feat
-status: Todo
+status: In Progress
 estimate: 2
 priority: P1
 ordinal: 600
 lane: engine
 milestone: bootstrap
+started: 2026-10-15T00:25:36Z
 ---
 ### Summary
 Generate issue IDs as ADR 0008 decides, `<prefix>-<word>` with a random CVCVC word, and resolve the short forms people type.

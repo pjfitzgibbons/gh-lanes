@@ -1,15 +1,3 @@
-generated_at: 2026-10-14T22:02:19Z
+generated_at: 2026-10-15T00:25:36Z
 ready:
-  - id: pl-jamup
-    title: "IDs: draw a word, keep the blocklist, resolve what is typed"
-    estimate: 2
-    duration_weeks: 0.4
-    lane: engine
-    milestone: bootstrap
-    priority: P1
-    focus: false
-    unblocks:
-      - "pl-nahuj - Fixture trees and a converter from JSON trackers"
-      - "pl-veles - Import gh-plan's open GitHub issues into .tracker/items, then close them"
-      - "pl-dafip - plan start and plan stop: the curated start commit and the post-checkout hook"
 in_flight: []
