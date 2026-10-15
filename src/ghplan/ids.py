@@ -85,25 +85,38 @@ def draw_word(rng: random.Random, taken: Collection[str], blocklist: Collection[
     return rng.choice(left)
 
 
-def item_ids(items_dir: Path) -> list[str]:
-    """The IDs of the item files in `.tracker/items/`: their stems."""
-    if not items_dir.is_dir():
-        return []
-    return sorted(p.stem for p in items_dir.glob("*.md"))
+class DuplicateItemError(Exception):
+    """An item file is in both `items/` and `archive/`. Which one is right is Peter's call."""
 
 
-def new_id(prefix: str, items_dir: Path, rng: random.Random | None = None) -> str:
+def item_files(tracker: Path) -> dict[str, Path]:
+    """Each item's ID and file, from `items/` and from `archive/` (a Done item lives there)."""
+    files: dict[str, Path] = {}
+    for directory in ("items", "archive"):
+        for path in sorted((tracker / directory).glob("*.md")):
+            if path.stem in files:
+                raise DuplicateItemError(f"{path.stem} is in both {files[path.stem]} and {path}")
+            files[path.stem] = path
+    return files
+
+
+def item_ids(tracker: Path) -> list[str]:
+    """The IDs of the item files in `.tracker/items/` and `.tracker/archive/`: their stems."""
+    return sorted(item_files(tracker))
+
+
+def new_id(prefix: str, tracker: Path, rng: random.Random | None = None) -> str:
     """An ID for a new item, drawn as design 0001 *Identity* says. There is no counter to merge."""
-    taken = {m["word"] for id in item_ids(items_dir) if (m := ID.fullmatch(id))}
+    taken = {m["word"] for id in item_ids(tracker) if (m := ID.fullmatch(id))}
     word = draw_word(rng or random.SystemRandom(), taken, load_blocklist())
     return f"{prefix}-{word}"
 
 
-def read_titles(items_dir: Path) -> dict[str, str]:
+def read_titles(tracker: Path) -> dict[str, str]:
     """Each item's ID and title, for resolving and for listing candidates."""
     titles = {}
-    for id in item_ids(items_dir):
-        front, _ = read_markdown(items_dir / f"{id}.md")
+    for id, path in item_files(tracker).items():
+        front, _ = read_markdown(path)
         titles[id] = str(front.get("title", ""))
     return titles
 

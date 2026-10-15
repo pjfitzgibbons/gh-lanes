@@ -104,8 +104,13 @@ GitHub Issues is not used.
   and leaving `started` in the file as the record of the false start.
 - The finish is the merge. The branch sets `status: Done` before it merges, and the change
   reaches the default branch in the same squash commit as the work. Its actual finish is the
-  committer date of the first-parent commit on the default branch that made it Done. An item worked
-  across several branches is set Done by the last of them.
+  committer date of the first-parent commit on the default branch that made it Done, found by
+  following the file's rename into `archive/`. An item worked across several branches is set Done
+  by the last of them.
+- A Done item lives in `.tracker/archive/<id>.md`, so Done ⟺ in `archive/`. The same branch commit
+  that sets `status: Done` moves the file there, so the merge finishes and archives it together.
+  Reopening an item moves it back to `items/` in the commit that changes its status. An ID in both
+  directories is an error.
 - A tool commit is curated. It touches only one item's `status` and `started`, plus
   `ready.yml`. The tool builds it on the tip of the default branch through a temporary index,
   without checking that branch out, so nothing else in the working tree can get into it and the

@@ -54,7 +54,7 @@ comments, notifications, auth, multi-user support, permissions or email.
 | Term | Definition |
 |---|---|
 | Tracker | A local CLI plus an optional localhost web UI over the files in `.tracker/` |
-| Item | One Markdown file, `.tracker/items/<id>.md`, in the repo the item belongs to. YAML front matter holds its fields and the body holds its description. Committed. The source of truth |
+| Item | One Markdown file, `.tracker/items/<id>.md`, or `.tracker/archive/<id>.md` once Done (a reopened item moves back to `items/`), in the repo the item belongs to. YAML front matter holds its fields and the body holds its description. Committed. The source of truth |
 | ID | `<prefix>-<word>`, such as `pl-bakor`: the repo's prefix and a random pronounceable five-letter word (§5) |
 | Plan | A `.tracker/` and the items it reads. Every repo's `.tracker/` is a plan of its own items; one that lists member repos spans theirs too (§4) |
 | Member repo | A repo a plan lists by path in its config, whose items the plan reads in place |

@@ -1,7 +1,7 @@
 ---
 title: "Archive: Done items move to .tracker/archive/"
 type: chore
-status: In Progress
+status: Done
 estimate: 2
 priority: P1
 ordinal: 650
@@ -37,13 +37,13 @@ started: 2026-10-15T12:40:28Z
 - [ ] L12 Offline and concurrency
 
 ### Done
-- [ ] Every item with `status: Done` is in `.tracker/archive/`, and `.tracker/items/` holds none.
-- [ ] L6: `git log --follow` on each moved file reaches the commit that created it.
-- [ ] L6: a test shows `resolve` and `read_titles` find an archived item.
-- [ ] L7: `ls .tracker/items/` lists only items that are not Done.
-- [ ] L8: a test shows `new_id` never returns an archived item's ID.
-- [ ] L8: a test shows an ID in both directories raises an error naming both paths.
-- [ ] L10: ADR 0008, architecture.md's glossary and requirements H5 each say a Done item lives in `archive/` and a reopened one moves back.
-- [ ] L11: the moves reach the default branch only through this PR; `git log origin/main -- .tracker/archive/` shows no commit before its merge.
-- [ ] `worktask done` warns for a merged item outside `archive/`, and is silent for one inside it.
-- [ ] `uv run pytest` passes, coverage gate included.
+- [x] Every item with `status: Done` is in `.tracker/archive/`, and `.tracker/items/` holds none.
+- [x] L6: `git log --follow` on each moved file reaches the commit that created it.
+- [x] L6: a test shows `resolve` and `read_titles` find an archived item.
+- [x] L7: `ls .tracker/items/` lists only items that are not Done.
+- [x] L8: a test shows `new_id` never returns an archived item's ID.
+- [x] L8: a test shows an ID in both directories raises an error naming both paths.
+- [x] L10: ADR 0008, architecture.md's glossary and requirements H5 each say a Done item lives in `archive/` and a reopened one moves back.
+- [x] L11: the moves reach the default branch only through this PR; `git log origin/main -- .tracker/archive/` shows no commit before its merge.
+- [x] `worktask done` warns for a merged item outside `archive/`, and is silent for one inside it.
+- [x] `uv run pytest` passes, coverage gate included.
