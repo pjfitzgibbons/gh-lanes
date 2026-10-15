@@ -30,10 +30,10 @@ def _utc_to_the_second(v: datetime) -> datetime:
     return v.astimezone(UTC).replace(microsecond=0)
 
 
-def _not_bool(v: Any) -> Any:
-    # True == 1, so strict mode alone would take `estimate: true` as an estimate of 1.
-    if isinstance(v, bool):
-        raise ValueError(f"{v} is not a number")
+def _exactly_int(v: Any) -> Any:
+    # True == 1 and 3.0 == 3, so strict mode alone matches `true` or `3.0` to an integer literal.
+    if type(v) is not int:
+        raise ValueError(f"{v!r} is not a whole number")
     return v
 
 
@@ -58,7 +58,7 @@ def _quoted(v: str, info: SerializationInfo) -> str:
 # Read with any offset, held and written as UTC to the second: "2026-10-10T16:00:00Z".
 UtcDatetime = Annotated[datetime, AfterValidator(_utc_to_the_second)]
 
-Estimate = Annotated[Literal[1, 2, 3, 5], BeforeValidator(_not_bool)]  # 8 and 13 mean "split this"
+Estimate = Annotated[Literal[1, 2, 3, 5], BeforeValidator(_exactly_int)]  # 8 and 13 mean "split this"
 Priority = Literal["P0", "P1", "P2", "P3"]
 Status = Literal["Icebox", "Todo", "In Progress", "Blocked", "Done"]
 Type = Literal["feat", "bug", "chore"]

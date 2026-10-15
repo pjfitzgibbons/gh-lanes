@@ -100,6 +100,7 @@ def test_accepts_each_type(type):
         ({"estimate": 13}, "estimate"),
         ({"estimate": 4}, "estimate"),
         ({"estimate": True}, "estimate"),
+        ({"estimate": 3.0}, "estimate"),
         ({"estimate": "3"}, "estimate"),
         ({"ordinal": "100"}, "ordinal"),
         ({"type": "fix"}, "type"),
@@ -211,9 +212,10 @@ def test_a_datetime_without_a_time_zone_is_rejected():
     [
         ("lanee: api\n", "lanee"),
         ("estimate: 8\n", "estimate"),
+        ("estimate: 3.0\n", "not a whole number"),
         ("ordinal: high\n", "ordinal"),
     ],
-    ids=["unknown-key", "estimate-not-allowed", "wrong-type"],
+    ids=["unknown-key", "estimate-not-allowed", "estimate-a-float", "wrong-type"],
 )
 def test_a_bad_item_fails_naming_the_file(tmp_path, change, message):
     text = ITEM_FILE.replace("estimate: 3\n", "").replace("ordinal: 100\n", "")
