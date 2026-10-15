@@ -1,12 +1,13 @@
 ---
 title: "Schemas: Item, Milestone and Config for file-native trackers"
 type: feat
-status: Todo
+status: In Progress
 estimate: 3
 priority: P1
 ordinal: 500
 lane: model
 milestone: bootstrap
+started: 2026-10-15T00:55:36Z
 ---
 ### Summary
 Change the models in `model.py` and `config.py` to the fields ADR 0008 puts in the files. GitHub identity goes, and the tracker owns title, labels, parent and blocked-by.
