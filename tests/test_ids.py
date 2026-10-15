@@ -13,6 +13,7 @@ from ghplan.ids import (
     WORD,
     WORDS,
     AmbiguousError,
+    DuplicateItemError,
     NoMatchError,
     ResolveError,
     all_words,
@@ -33,16 +34,26 @@ ITEMS = {
     "pl-dobed": "Docs follow the ADRs",
     "pl-dobim": "Docs for the board",
 }
+# A Done item lives in `archive/`.
+ARCHIVED = {"pl-zefab": "Ship the first release"}
+
+
+def write_item(directory: Path, id: str, title: str, status: str) -> Path:
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / f"{id}.md"
+    path.write_text(f'---\ntitle: "{title}"\nstatus: {status}\n---\n### Summary\n')
+    return path
 
 
 @pytest.fixture
-def items_dir(tmp_path: Path) -> Path:
-    """A fixture tracker's `.tracker/items/`, one Markdown file per entry in ITEMS."""
-    d = tmp_path / ".tracker" / "items"
-    d.mkdir(parents=True)
+def tracker(tmp_path: Path) -> Path:
+    """A fixture `.tracker/`: ITEMS in `items/`, ARCHIVED in `archive/`."""
+    d = tmp_path / ".tracker"
     for id, title in ITEMS.items():
-        (d / f"{id}.md").write_text(f'---\ntitle: "{title}"\nstatus: Todo\n---\n### Summary\n')
-    (d / "notes.txt").write_text("not an item\n")
+        write_item(d / "items", id, title, "Todo")
+    for id, title in ARCHIVED.items():
+        write_item(d / "archive", id, title, "Done")
+    (d / "items" / "notes.txt").write_text("not an item\n")
     return d
 
 
@@ -57,8 +68,7 @@ def test_the_alphabet_is_16_consonants_and_5_vowels():
 
 def test_every_existing_id_in_this_repo_is_a_word():
     # The alphabet was chosen so that no ID already committed becomes invalid.
-    tracker = Path(__file__).parents[1] / ".tracker" / "items"
-    stems = item_ids(tracker)
+    stems = item_ids(Path(__file__).parents[1] / ".tracker")
     assert stems
     assert all(ids.ID.fullmatch(s) for s in stems), stems
 
@@ -112,28 +122,48 @@ def test_a_full_repo_fails():
         draw_word(random.Random(3), set(all_words()), frozenset())
 
 
-def test_new_id_skips_the_words_already_in_items(items_dir: Path, monkeypatch):
+def test_new_id_skips_the_words_already_in_items(tracker: Path, monkeypatch):
     monkeypatch.setattr(ids, "load_blocklist", frozenset)
-    first = new_id("pl", items_dir, random.Random(5))
-    (items_dir / f"{first}.md").write_text('---\ntitle: "Taken"\n---\n')
+    first = new_id("pl", tracker, random.Random(5))
+    write_item(tracker / "items", first, "Taken", "Todo")
     # The same seed draws the same word first, now taken, so it draws again.
-    drawn = new_id("pl", items_dir, random.Random(5))
+    drawn = new_id("pl", tracker, random.Random(5))
+    assert drawn != first and ids.ID.fullmatch(drawn)
+
+
+def test_new_id_never_draws_an_archived_items_word(tracker: Path, monkeypatch):
+    monkeypatch.setattr(ids, "load_blocklist", frozenset)
+    first = new_id("pl", tracker, random.Random(5))
+    write_item(tracker / "archive", first, "Done long ago", "Done")
+    drawn = new_id("pl", tracker, random.Random(5))
     assert drawn != first and ids.ID.fullmatch(drawn)
 
 
 def test_new_id_in_a_tracker_with_no_items_yet(tmp_path: Path):
-    assert ids.ID.fullmatch(new_id("wa", tmp_path / "items"))
+    assert ids.ID.fullmatch(new_id("wa", tmp_path / ".tracker"))
 
 
 # --- reading ---
 
 
-def test_item_ids_are_the_markdown_stems(items_dir: Path):
-    assert item_ids(items_dir) == sorted(ITEMS)
+def test_item_ids_are_the_markdown_stems_of_items_and_archive(tracker: Path):
+    assert item_ids(tracker) == sorted(ITEMS | ARCHIVED)
 
 
-def test_read_titles(items_dir: Path):
-    assert read_titles(items_dir) == ITEMS
+def test_read_titles_finds_an_archived_item(tracker: Path):
+    assert read_titles(tracker) == ITEMS | ARCHIVED
+
+
+def test_resolve_finds_an_archived_item(tracker: Path):
+    assert resolve("zefab", read_titles(tracker), "pl") == "pl-zefab"
+
+
+def test_an_id_in_both_directories_is_an_error_naming_both_paths(tracker: Path):
+    write_item(tracker / "archive", "pl-tunep", "Draw a word for each new item", "Done")
+    with pytest.raises(DuplicateItemError) as err:
+        item_ids(tracker)
+    assert str(tracker / "items" / "pl-tunep.md") in str(err.value)
+    assert str(tracker / "archive" / "pl-tunep.md") in str(err.value)
 
 
 # --- resolving ---
