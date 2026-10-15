@@ -1,12 +1,13 @@
 ---
 title: "Archive: Done items move to .tracker/archive/"
 type: chore
-status: Todo
+status: In Progress
 estimate: 2
 priority: P1
 ordinal: 650
 lane: model
 milestone: bootstrap
+started: 2026-10-15T12:40:28Z
 ---
 ### Task
 `.tracker/items/` keeps every item ever made, so the active work gets harder to see as Done items pile up. A Done item moves to `.tracker/archive/<id>.md` in the same branch commit that sets it `status: Done`, so the merge both finishes and archives it.

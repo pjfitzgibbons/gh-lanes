@@ -1,14 +1,5 @@
-generated_at: 2026-10-15T02:37:17Z
+generated_at: 2026-10-15T12:40:28Z
 ready:
-  - id: pl-johoh
-    title: "Archive: Done items move to .tracker/archive/"
-    estimate: 2
-    duration_weeks: 0.06
-    lane: model
-    milestone: bootstrap
-    priority: P1
-    focus: false
-    unblocks: [pl-datob]
   - id: pl-veles
     title: Import gh-plan's open GitHub issues into .tracker/items, then close them
     estimate: 3
