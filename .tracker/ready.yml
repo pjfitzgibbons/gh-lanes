@@ -1,12 +1,30 @@
-generated_at: 2026-10-15T01:23:45Z
+generated_at: 2026-10-15T02:37:17Z
 ready:
   - id: pl-johoh
     title: "Archive: Done items move to .tracker/archive/"
     estimate: 2
-    duration_weeks: 0.4
+    duration_weeks: 0.06
     lane: model
     milestone: bootstrap
     priority: P1
+    focus: false
+    unblocks: []
+  - id: pl-veles
+    title: Import gh-plan's open GitHub issues into .tracker/items, then close them
+    estimate: 3
+    duration_weeks: 0.09
+    lane: github
+    milestone: bootstrap
+    priority: P1
+    focus: false
+    unblocks: []
+  - id: pl-dafip
+    title: "plan start and plan stop: the curated start commit and the post-checkout hook"
+    estimate: 5
+    duration_weeks: 0.14
+    lane: engine
+    milestone: bootstrap
+    priority: P2
     focus: false
     unblocks: []
 in_flight: []
