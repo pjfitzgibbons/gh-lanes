@@ -49,7 +49,7 @@ GitHub Issues is not used.
 - Each repo keeps its own items in its own `.tracker/items/<id>.md`, committed with its code
   and docs. A repo is planned on its own with no other repo present.
 - An item file is a Markdown body under a front matter header. The body follows the issue
-  outline (Summary, Scope, Acceptance, Tests, Lenses). The header holds every field: title, status,
+  outline (Task, Guardrails, Done). The header holds every field: title, status,
   estimate, priority, ordinal, lane, milestone, labels, parent, blocked-by, started and baseline.
   The header's syntax is [ADR 0007](0007-tracker-files-are-yaml.md)'s.
 - IDs are the repo's prefix and a random pronounceable word, such as `pl-bakor` in gh-plan.

@@ -30,7 +30,7 @@ An item is a file, `.tracker/items/<id>.md`: YAML front matter, then a Markdown 
 - **Title:** the `title` field, an imperative outcome. It carries no estimate.
 - **Type:** `type` is `feat`, `bug` or `chore`, and names the branch: `feat/`, `fix/` or `chore/`.
 - **Front matter:** `type`, `estimate`, `priority`, `ordinal`, `lane`, `milestone`, `labels`, `parent` and `blocked_by` are fields, in the order [design 0001, *File format*](../design/0001-phase-1.md#file-format) lists. The estimate is one of 1, 2, 3 or 5. 8 and 13 mean "split this" and are never used as an estimate.
-- **Sections:** after `### Acceptance`, a `### Tests` section says what the suite proves, and `### Lenses` closes the body. There is no *Planning* section; the front matter holds what it held.
+- **Sections:** the global three, Task, Guardrails and Done. Done's pass/fail conditions include what the test suite proves, and the lens checklist, L1 to L12, ends Guardrails. There is no *Planning* section; the front matter holds what it held.
 - **Lanes** are the ones in `.tracker/config.yml`: `cli`, `engine`, `github`, `infra`, `model`, `web`.
 - **Dependencies** are `blocked_by` in the front matter, as `"<id> - <title>"` strings, never lines in the body.
-- **Imported items** are rewritten to this outline when they're picked up, before any code, and never in bulk.
+- **Items in an older outline** (Summary, Scope, Acceptance, Tests, Lenses), and imported items, are rewritten to this outline when they're picked up, before any code, and never in bulk.
