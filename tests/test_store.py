@@ -7,8 +7,8 @@ import pytest
 import yaml as pyyaml  # PyYAML, a YAML 1.1 reader: the written file must read the same in it
 from pydantic import BaseModel
 
-from ghplan.model import FileFormatError
 from ghplan.store import (
+    FileFormatError,
     dumps_markdown,
     dumps_yaml,
     read_markdown,

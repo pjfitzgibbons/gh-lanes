@@ -1,7 +1,7 @@
 ---
 title: "Schemas: Item, Milestone and Config for file-native trackers"
 type: feat
-status: In Progress
+status: Done
 estimate: 3
 priority: P1
 ordinal: 500

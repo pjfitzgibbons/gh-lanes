@@ -1,26 +1,23 @@
-"""`.tracker/config.json`: the model, and finding `.tracker/` from wherever the CLI runs.
+"""`.tracker/config.yml`: the model, and finding `.tracker/` from wherever the CLI runs.
 
 Discovery walks up from the working directory like git does; `PLAN_ROOT` names the directory that
 holds `.tracker/` and skips the walk. See design 0001 *Discovery* and *Config*.
 """
 
 import os
-import re
 from datetime import date
 from pathlib import Path
 from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from ghplan.model import FileFormatError, read_json
+from ghplan.ids import PREFIX
+from ghplan.store import FileFormatError, load_yaml
 
 TRACKER_DIR = ".tracker"
-CONFIG_FILE = "config.json"
-YAML_CONFIG_FILE = "config.yml"  # the format before ADR 0007
+CONFIG_FILE = "config.yml"
+JSON_CONFIG_FILE = "config.json"  # the layout before ADRs 0007 and 0008
 ROOT_ENV = "PLAN_ROOT"
-# GitHub's owner rule: ASCII letters, digits and single inner hyphens. Repo names: ASCII letters,
-# digits, `.`, `-` and `_`, with `.` and `..` reserved.
-GH_REPO = re.compile(r"(?a)[A-Za-z0-9](?:-?[A-Za-z0-9])*/[A-Za-z0-9._-]+")
 
 
 class TrackerError(Exception):
@@ -40,31 +37,9 @@ class NeedsConvertingError(TrackerError):
     def __init__(self, path: Path):
         self.path = path
         super().__init__(
-            f"{path} is YAML; tracker files are JSON now (ADR 0007). "
-            f"Convert {path.parent} to JSON before running plan"
+            f"{path} is a JSON tracker; tracker files are YAML and Markdown now (ADRs 0007, 0008). "
+            f"Convert {path.parent} with `plan convert` before running plan"
         )
-
-
-class Repo(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    path: str  # relative to the directory holding .tracker/
-    gh: str  # owner/name
-
-    @field_validator("path")
-    @classmethod
-    def _relative(cls, v: str) -> str:
-        # An absolute path would replace the root when joined, and differ per machine.
-        if Path(v).is_absolute():
-            raise ValueError(f"path {v!r} must be relative to the tracker root")
-        return v
-
-    @field_validator("gh")
-    @classmethod
-    def _owner_name(cls, v: str) -> str:
-        if not GH_REPO.fullmatch(v) or v.split("/")[1] in (".", ".."):
-            raise ValueError(f"gh {v!r} is not owner/name")
-        return v
 
 
 class TimeSourceConfig(BaseModel):
@@ -76,23 +51,39 @@ class TimeSourceConfig(BaseModel):
 
 class Config(BaseModel):
     # A misspelt key fails loudly instead of silently taking its default.
-    model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True, allow_inf_nan=False)
 
     # Field order is the file's key order.
+    prefix: str
     points_per_week: float = Field(gt=0)
     project_start: date
-    stale_after_minutes: int = Field(default=15, ge=0)
-    write_pause_seconds: float = Field(default=1.0, ge=0)
     hours_per_point: float = Field(default=8.0, gt=0)
     time_source: TimeSourceConfig | None = None
-    repos: dict[str, Repo] = Field(min_length=1)
+    repos: list[str] = []  # member repos, by path relative to the root; absent when planned alone
     lanes: list[str] = Field(min_length=1)
 
+    @field_validator("prefix")
+    @classmethod
+    def _id_prefix(cls, v: str) -> str:
+        if not PREFIX.fullmatch(v):
+            raise ValueError(f"prefix {v!r} must be lowercase letters a to z")
+        return v
+
+    @field_validator("repos")
+    @classmethod
+    def _relative(cls, v: list[str]) -> list[str]:
+        # An absolute path would replace the root when joined, and differ per machine.
+        for path in v:
+            if Path(path).is_absolute():
+                raise ValueError(f"repos path {path!r} must be relative to the tracker root")
+        return v
+
     @model_validator(mode="after")
-    def _no_duplicate_lanes(self) -> Self:
-        dupes = sorted({v for v in self.lanes if self.lanes.count(v) > 1})
-        if dupes:
-            raise ValueError(f"lanes repeats {', '.join(dupes)}")
+    def _no_duplicates(self) -> Self:
+        for key in ("repos", "lanes"):
+            values = getattr(self, key)
+            if dupes := sorted({v for v in values if values.count(v) > 1}):
+                raise ValueError(f"{key} repeats {', '.join(dupes)}")
         return self
 
 
@@ -108,17 +99,17 @@ class Tracker(BaseModel):
     def tracker_dir(self) -> Path:
         return self.root / TRACKER_DIR
 
-    def repo_path(self, name: str) -> Path:
-        return (self.root / self.config.repos[name].path).resolve()
+    def repo_paths(self) -> list[Path]:
+        return [(self.root / path).resolve() for path in self.config.repos]
 
     def milestone_files(self) -> list[Path]:
-        return sorted((self.tracker_dir / "milestones").glob("*.json"))
+        return sorted((self.tracker_dir / "milestones").glob("*.md"))
 
 
 def find_root(cwd: Path | None = None, env: dict[str, str] | None = None) -> Path:
-    """Return the directory holding `.tracker/config.json`, or raise NotFoundError.
+    """Return the directory holding `.tracker/config.yml`, or raise NotFoundError.
 
-    A `.tracker/` holding only the YAML config raises NeedsConvertingError, so an unconverted
+    A `.tracker/` holding only `config.json` raises NeedsConvertingError, so an unconverted
     tracker fails loudly instead of the walk passing it by.
     """
     env = os.environ if env is None else env
@@ -133,22 +124,18 @@ def find_root(cwd: Path | None = None, env: dict[str, str] | None = None) -> Pat
         searched.append(config)
         if config.is_file():
             return directory
-        if (yaml_config := config.with_name(YAML_CONFIG_FILE)).is_file():
-            raise NeedsConvertingError(yaml_config)
+        if (json_config := config.with_name(JSON_CONFIG_FILE)).is_file():
+            raise NeedsConvertingError(json_config)
     raise NotFoundError(searched)
 
 
 def load(root: Path) -> Config:
     path = root / TRACKER_DIR / CONFIG_FILE
     try:
-        data = read_json(path)
+        return load_yaml(path, Config)
     except FileFormatError as e:
         raise TrackerError(str(e)) from e
     except OSError as e:
-        raise TrackerError(f"{path}: {e}") from e
-    try:
-        return Config.model_validate(data)
-    except ValidationError as e:
         raise TrackerError(f"{path}: {e}") from e
 
 

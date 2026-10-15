@@ -22,7 +22,8 @@ WORDS = len(CONSONANTS) ** 3 * len(VOWELS) ** 2  # 102,400
 
 _C, _V = f"[{CONSONANTS}]", f"[{VOWELS}]"
 WORD = re.compile(_C + _V + _C + _V + _C)
-ID = re.compile(rf"(?P<prefix>[a-z]+)-(?P<word>{WORD.pattern})")
+PREFIX = re.compile("[a-z]+")
+ID = re.compile(rf"(?P<prefix>{PREFIX.pattern})-(?P<word>{WORD.pattern})")
 # A branch named for an item: `<type>/<id>-<slug>`, or `<type>/<id>` with no slug.
 BRANCH = re.compile(rf"[a-z]+/(?P<id>{ID.pattern})(?:-.*)?")
 

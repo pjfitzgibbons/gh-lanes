@@ -1,61 +1,96 @@
-"""model.py: the item, baseline and milestone schemas, and the canonical JSON form."""
+"""model.py: the item, baseline and milestone schemas, read from and written to their files."""
 
-import json
-from datetime import date
+from datetime import UTC, date, datetime, timedelta, timezone
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
+from ruamel.yaml import YAML
 
-from ghplan.model import FileFormatError, Item, Milestone, dumps, read_json
+from ghplan.model import Item, Milestone
+from ghplan.store import (
+    FileFormatError,
+    dumps_markdown,
+    load_markdown,
+    split_front_matter,
+)
 
 # The design 0001 *Item* example, in the canonical form of design 0001 *File format*.
 ITEM_FILE = """\
-{
-  "issue": 23,
-  "node_id": "I_kwDOA1b2c3",
-  "draft": false,
-  "repo": "web-app",
-  "estimate": 2,
-  "priority": "P0",
-  "status": "Todo",
-  "ordinal": 100,
-  "lane": "frontend",
-  "milestone": "beta",
-  "baseline": {
-    "start": "2026-10-13",
-    "finish": "2026-10-15",
-    "frozen_at": "2026-10-10T16:00:00Z",
-    "reason": "Beta checkpoint"
-  }
-}
+---
+title: Retry failed webhook deliveries
+type: feat
+status: Todo
+estimate: 3
+priority: P1
+ordinal: 100
+lane: api
+milestone: beta
+labels:
+  - area:webhooks
+parent: wa-ridal
+blocked_by:
+  - "ba-sokim - Sign webhook payloads"
+started: 2026-10-14T09:30:00Z
+baseline:
+  start: 2026-10-13
+  finish: 2026-10-18
+  frozen_at: 2026-10-10T16:00:00Z
+  reason: Beta checkpoint
+---
+### Summary
+A webhook delivery that fails is dropped. Retry it with backoff before giving up.
 """
 
 MILESTONE_FILE = """\
-{
-  "id": "beta",
-  "title": "Beta",
-  "exit_criterion": "Every beta issue closed and the checkout flow demoed",
-  "order": 200
-}
+---
+title: Beta
+order: 200
+---
+Every P0 and P1 item in `api` and `frontend` is Done, and signup has run end to end on staging.
 """
 
-IDENTITY = {"node_id": "I_kwDOA1b2c3", "issue": 23, "repo": "web-app"}
+MINIMAL = {"title": "Retry failed webhook deliveries", "type": "feat"}
+REPO_TRACKER = Path(__file__).parents[1] / ".tracker"
 
 
-def load(text: str):
-    return json.loads(text)
+def front(text: str) -> dict:
+    """The front matter as YAML types it: dates and datetimes, not strings."""
+    return YAML(typ="safe").load(split_front_matter(text, Path("example.md"))[0])
+
+
+def write(tmp_path: Path, name: str, text: str) -> Path:
+    path = tmp_path / name
+    path.write_text(text, encoding="utf-8")
+    return path
 
 
 def test_loads_the_design_example():
-    item = Item.model_validate(load(ITEM_FILE))
-    assert item.estimate == 2
-    assert item.baseline.finish == date(2026, 10, 15)
-    assert item.baseline.frozen_at.tzinfo is not None
+    item = Item.model_validate(front(ITEM_FILE))
+    assert (item.title, item.type, item.estimate) == ("Retry failed webhook deliveries", "feat", 3)
+    assert item.parent == "wa-ridal"
+    assert item.blocker_ids == ["ba-sokim"]
+    assert item.started == datetime(2026, 10, 14, 9, 30, tzinfo=UTC)
+    assert item.baseline.finish == date(2026, 10, 18)
 
 
 def test_defaults():
-    item = Item.model_validate(IDENTITY)
+    item = Item.model_validate(MINIMAL)
     assert (item.status, item.priority, item.estimate, item.milestone) == ("Icebox", "P2", None, None)
+    assert (item.labels, item.parent, item.blocked_by, item.started) == ([], None, [], None)
+
+
+@pytest.mark.parametrize("missing", ["title", "type"])
+def test_title_and_type_are_required(missing):
+    data = dict(MINIMAL)
+    del data[missing]
+    with pytest.raises(ValidationError, match=missing):
+        Item.model_validate(data)
+
+
+@pytest.mark.parametrize("type", ["feat", "bug", "chore"])
+def test_accepts_each_type(type):
+    assert Item.model_validate(MINIMAL | {"type": type}).type == type
 
 
 @pytest.mark.parametrize(
@@ -64,43 +99,56 @@ def test_defaults():
         ({"estimate": 8}, "estimate"),
         ({"estimate": 13}, "estimate"),
         ({"estimate": 4}, "estimate"),
+        ({"estimate": True}, "estimate"),
+        ({"estimate": "3"}, "estimate"),
+        ({"ordinal": "100"}, "ordinal"),
+        ({"type": "fix"}, "type"),
         ({"priority": "P4"}, "priority"),
         ({"status": "In Review"}, "status"),
-        ({"title": "Copied from GitHub"}, "title"),
-        ({"depends_on": [12]}, "depends_on"),
-        ({"draft": True}, "a draft has no node_id"),
-        ({"node_id": None}, "needs node_id and issue"),
-        ({"issue": None}, "needs node_id and issue"),
+        ({"labels": "area:webhooks"}, "labels"),
+        ({"parent": "ridal"}, "not an item ID"),
+        ({"parent": "wa-ridal - Webhooks"}, "not an item ID"),
+        ({"blocked_by": ["Sign webhook payloads"]}, "does not start with an item ID"),
+        ({"blocked_by": ["ba-sokim: Sign webhook payloads"]}, "does not start with an item ID"),
+        ({"started": "2026-10-14T09:30:00Z"}, "started"),
+        # GitHub identity and the old JSON fields are gone, so a file still carrying them fails.
+        ({"issue": 23}, "issue"),
+        ({"node_id": "I_kwDOA1b2c3"}, "node_id"),
+        ({"draft": False}, "draft"),
+        ({"repo": "web-app"}, "repo"),
+        ({"id": "wa-tunep"}, "id"),
         (
-            {"baseline": {"start": "2026-10-15", "finish": "2026-10-13",
-                          "frozen_at": "2026-10-10T16:00:00Z", "reason": "r"}},
+            {"baseline": {"start": date(2026, 10, 15), "finish": date(2026, 10, 13),
+                          "frozen_at": datetime(2026, 10, 10, 16, tzinfo=UTC), "reason": "r"}},
             "finishes 2026-10-13 before it starts",
         ),
     ],
 )
 def test_rejects_bad_item(change, message):
     with pytest.raises(ValidationError, match=message):
-        Item.model_validate(IDENTITY | change)
+        Item.model_validate(MINIMAL | change)
 
 
-def test_a_draft_has_no_identity():
-    item = Item.model_validate({"repo": "web-app", "draft": True, "estimate": 1})
-    assert (item.node_id, item.issue) == (None, None)
+def test_a_blocker_may_omit_its_title():
+    assert Item.model_validate(MINIMAL | {"blocked_by": ["ba-sokim"]}).blocker_ids == ["ba-sokim"]
 
 
-def test_loads_a_milestone_checked_against_its_stem():
-    m = Milestone.model_validate(load(MILESTONE_FILE), context={"stem": "beta"})
-    assert (m.id, m.order) == ("beta", 200)
+def test_loads_a_milestone():
+    m = Milestone.model_validate(front(MILESTONE_FILE))
+    assert (m.title, m.order) == ("Beta", 200)
 
 
-def test_milestone_id_must_equal_the_stem():
-    with pytest.raises(ValidationError, match="must equal the file name 'beta-2'"):
-        Milestone.model_validate(load(MILESTONE_FILE), context={"stem": "beta-2"})
+@pytest.mark.parametrize(
+    "change", [{"id": "beta"}, {"exit_criterion": "Done"}, {"order": "200"}, {"order": True}]
+)
+def test_rejects_bad_milestone(change):
+    with pytest.raises(ValidationError, match=next(iter(change))):
+        Milestone.model_validate(front(MILESTONE_FILE) | change)
 
 
-@pytest.mark.parametrize("missing", ["id", "title", "exit_criterion", "order"])
+@pytest.mark.parametrize("missing", ["title", "order"])
 def test_milestone_fields_are_required(missing):
-    data = load(MILESTONE_FILE)
+    data = front(MILESTONE_FILE)
     del data[missing]
     with pytest.raises(ValidationError, match=missing):
         Milestone.model_validate(data)
@@ -109,80 +157,76 @@ def test_milestone_fields_are_required(missing):
 # The canonical form
 
 
-def test_the_design_example_is_canonical():
-    assert dumps(Item.model_validate(load(ITEM_FILE))) == ITEM_FILE
-    assert dumps(Milestone.model_validate(load(MILESTONE_FILE))) == MILESTONE_FILE
+def test_the_design_examples_are_canonical(tmp_path):
+    for name, model, text in [("wa-tunep.md", Item, ITEM_FILE), ("beta.md", Milestone, MILESTONE_FILE)]:
+        assert dumps_markdown(*load_markdown(write(tmp_path, name, text), model)) == text
 
 
 def test_keys_follow_the_field_order_whatever_the_input_order():
-    item = Item.model_validate(dict(reversed(list(load(ITEM_FILE).items()))))
-    assert list(json.loads(dumps(item))) == list(Item.model_fields)  # the example sets every field
+    item = Item.model_validate(dict(reversed(list(front(ITEM_FILE).items()))))
+    body = ITEM_FILE.split("---\n", 2)[2]
+    assert dumps_markdown(item, body) == ITEM_FILE
 
 
-def test_only_null_fields_are_left_out():
-    """A default is still written, so equal items give identical files however they were built."""
-    assert json.loads(dumps(Item.model_validate(IDENTITY))) == {
-        "issue": 23, "node_id": "I_kwDOA1b2c3", "draft": False, "repo": "web-app",
-        "priority": "P2", "status": "Icebox",
-    }
+def test_only_null_and_empty_fields_are_left_out():
+    """A default is still written, so every item file carries title, type, status and priority."""
+    assert dumps_markdown(Item.model_validate(MINIMAL), "") == (
+        "---\ntitle: Retry failed webhook deliveries\ntype: feat\nstatus: Icebox\npriority: P2\n---\n"
+    )
 
 
-def test_a_utc_datetime_ends_in_z():
-    assert '"frozen_at": "2026-10-10T16:00:00Z"' in dumps(Item.model_validate(load(ITEM_FILE)))
+def test_each_blocker_is_double_quoted_even_when_plain_would_do():
+    item = Item.model_validate(MINIMAL | {"blocked_by": ["ba-sokim", "ba-kipes - Sign payloads"]})
+    assert '  - "ba-sokim"\n  - "ba-kipes - Sign payloads"\n' in dumps_markdown(item, "")
+
+
+def test_a_json_dump_has_plain_strings():
+    item = Item.model_validate(MINIMAL | {"blocked_by": ["ba-sokim"]})
+    assert type(item.model_dump(mode="json")["blocked_by"][0]) is str
 
 
 @pytest.mark.parametrize(
-    "frozen_at",
-    ["2026-10-10T17:00:00+01:00", "2026-10-10T16:00:00.123456Z", "2026-10-10T16:00:00+00:00"],
-    ids=["offset", "fractional", "plus-zero"],
+    "started",
+    [
+        datetime(2026, 10, 14, 10, 30, tzinfo=timezone(timedelta(hours=1))),
+        datetime(2026, 10, 14, 9, 30, 0, 123456, tzinfo=UTC),
+    ],
+    ids=["offset", "fractional"],
 )
-def test_a_datetime_is_held_as_utc_to_the_second(frozen_at):
-    data = load(ITEM_FILE)
-    data["baseline"]["frozen_at"] = frozen_at
-    assert dumps(Item.model_validate(data)) == ITEM_FILE
+def test_a_datetime_is_held_as_utc_to_the_second(started):
+    item = Item.model_validate(front(ITEM_FILE) | {"started": started})
+    assert item.started == datetime(2026, 10, 14, 9, 30, tzinfo=UTC)
 
 
 def test_a_datetime_without_a_time_zone_is_rejected():
-    data = load(ITEM_FILE)
-    data["baseline"]["frozen_at"] = "2026-10-10T16:00:00"
     with pytest.raises(ValidationError, match="has no time zone"):
-        Item.model_validate(data)
-
-
-def test_non_ascii_is_written_as_itself():
-    m = Milestone.model_validate(load(MILESTONE_FILE) | {"title": "Café"})
-    assert '"title": "Café"' in dumps(m)
+        Item.model_validate(MINIMAL | {"started": datetime(2026, 10, 14, 9, 30)})
 
 
 # Reading a file
 
 
-def test_reads_utf8_without_escapes(tmp_path):
-    path = tmp_path / "beta.json"
-    path.write_text(MILESTONE_FILE.replace("Beta", "Café"), encoding="utf-8")
-    assert read_json(path)["title"] == "Café"
-
-
-def test_a_leading_byte_order_mark_is_accepted(tmp_path):
-    path = tmp_path / "beta.json"
-    path.write_bytes(b"\xef\xbb\xbf" + MILESTONE_FILE.encode())
-    m = Milestone.model_validate(read_json(path))
-    assert not dumps(m).startswith("\ufeff")
-
-
 @pytest.mark.parametrize(
-    ("content", "message"),
+    ("change", "message"),
     [
-        (b'{"title": "Caf\xe9"}', "not valid UTF-8"),
-        (b'{"title": ', "not valid JSON"),
-        (b'{"order": NaN}', "NaN is not a JSON number"),
-        (b'{"order": -Infinity}', "-Infinity is not a JSON number"),
+        ("lanee: api\n", "lanee"),
+        ("estimate: 8\n", "estimate"),
+        ("ordinal: high\n", "ordinal"),
     ],
-    ids=["latin-1", "truncated", "nan", "infinity"],
+    ids=["unknown-key", "estimate-not-allowed", "wrong-type"],
 )
-def test_an_unreadable_file_is_reported_by_name(tmp_path, content, message):
-    path = tmp_path / "beta.json"
-    path.write_bytes(content)
+def test_a_bad_item_fails_naming_the_file(tmp_path, change, message):
+    text = ITEM_FILE.replace("estimate: 3\n", "").replace("ordinal: 100\n", "")
+    path = write(tmp_path, "wa-tunep.md", text.replace("type: feat\n", f"type: feat\n{change}"))
     with pytest.raises(FileFormatError, match=message) as e:
-        read_json(path)
+        load_markdown(path, Item)
     assert str(path) in str(e.value)
+
+
+def test_this_repos_tracker_validates():
+    """gh-plan's own items and milestones load against the schemas."""
+    files = [(p, Item) for p in sorted((REPO_TRACKER / "items").glob("*.md"))]
+    files += [(p, Milestone) for p in sorted((REPO_TRACKER / "milestones").glob("*.md"))]
+    assert files
+    for path, model in files:
+        load_markdown(path, model)
