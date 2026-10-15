@@ -1,14 +1,5 @@
-generated_at: 2026-10-15T12:40:28Z
+generated_at: 2026-10-15T18:36:08Z
 ready:
-  - id: pl-veles
-    title: Import gh-plan's open GitHub issues into .tracker/items, then close them
-    estimate: 3
-    duration_weeks: 0.09
-    lane: github
-    milestone: bootstrap
-    priority: P1
-    focus: false
-    unblocks: [pl-datob]
   - id: pl-dafip
     title: "plan start and plan stop: the curated start commit and the post-checkout hook"
     estimate: 5
