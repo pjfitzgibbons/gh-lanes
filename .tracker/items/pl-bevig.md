@@ -13,7 +13,7 @@ blocked_by:
 ### Task
 Grow `worktask`'s VS Code extension into `pjfitzgibbons.plan-board`, the sidebar of [design 0003](../../docs/design/0003-plan-board.md) §3.6:
 - Ready, In-progress and Done sections across the repos in `planBoard.repos`, read with `plan_board.py list` and refreshed by a file watcher.
-- Review of a card's files in the diff editor, and *Use my edits*.
+- Review of a card's files in the diff editor, a PR body diffed against the copy on GitHub and hidden when it matches, and *Use my edits*.
 - ▶ and ▶ *Start* in a named terminal; clicking an item's row switches to its window.
 - Polling a `review` card every 60 s, and *Worktree Done*.
 

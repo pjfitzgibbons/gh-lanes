@@ -146,7 +146,7 @@ paths:
 | `planted` | When the card was written, UTC |
 | `planted_by` | `person` for card 01, written by ▶ *Start*; `runner` for a `review` card; `claude` for every other card |
 | `person` | For a `person` card, who pressed ▶ *Start*: `git config user.name`, or the `gh` login when that's unset. No one's name is built into the runner or the sidebar; a name they show comes from git or `gh` |
-| `message`, `body` | The commit message and PR body files, for the recipes that use them |
+| `message`, `body` | The commit message and PR body files, for the recipes that use them. After an edit to the PR's body on GitHub was caught, `body` also carries `live_sha256`, the hash of the `pr-body-live.md` Claude folded in (§3.2) |
 | `steps` | Every command ▶ will run, verbatim and in order, as a literal block (`steps: \|`), one command to a line. The runner refuses a card whose steps differ from its recipe's (§3.3) |
 | `paths` | The paths to commit, for `commit` and `ship`. `deleted` marks a removal: the runner checks the path is gone from the checkout, and `git add` names it only while the index still has it. After a `git mv` the removal is already staged, so `git add` leaves it out |
 | `restamped` | When Peter took his own edits with *Use my edits* (§3.6), UTC. Absent otherwise |
@@ -186,25 +186,43 @@ checkout, or that it was started outside. Paths in a card are relative to the ch
 | Recipe | Runs in | Checks | Steps |
 |---|---|---|---|
 | `worktask-start` | main | the item is Todo on `origin/<default>`; it has no worktree or branch | `worktask start <id>`, which pushes `plan: start <id>` and opens the worktree's window |
-| `commit` | worktree | on the item's branch; every file matches its hash; `message` ends with an `Assisted-by:` trailer and names no AI as author | `git add -- <paths>`, `git commit -F <message>` |
-| `rebase` | worktree | on the item's branch; no rebase already in progress | `git fetch origin`, `git rebase --autostash origin/<default>`; when the branch is already on `origin`, `git push --force-with-lease` |
-| `ship` | worktree | `commit`'s checks; `body` starts with `Closes:` and carries no attribution; reads the PR's state with `gh pr view`; when the PR is open, its body on GitHub is the one the runner last pushed | no PR: commit, `git push -u origin HEAD`, `gh pc`, then `gh pr edit --add-reviewer @copilot`. Open: commit, `git push`, `gh pb`. Merged or closed: refused |
-| `pr-body` | worktree | the PR is open; `body`'s checks; its body on GitHub is the one the runner last pushed | `gh pb` |
-| `review` | main | the PR is open; Copilot's review was requested | `gh pr view <n> --json reviews`, once a poll, until a review by Copilot is posted; no ▶ (§3.6) |
+| `commit` | worktree | on the item's branch; every file matches its hash; nothing outside `paths` is staged; `message` ends with an `Assisted-by:` trailer and names no AI as author | `git add -- <paths>`, `git commit -F <message>` |
+| `rebase` | worktree | on the item's branch; no rebase already in progress; after `git fetch origin`, the branch's tip on `origin` is an ancestor of `HEAD` | `git fetch origin`, `git rebase --autostash origin/<default>`; when the branch is already on `origin`, `git push --force-with-lease=<branch>:<sha>`, `<sha>` being that tip |
+| `ship` | worktree | `commit`'s checks; `body` starts with `Closes:` and carries no attribution; reads the PR's state with `gh pr view`; when the PR is open, its body on GitHub is the one the runner last posted, or the one `live_sha256` names | no PR: commit, `git push -u origin HEAD`, `gh pc`, then `gh pr edit --add-reviewer @copilot`. Open: commit, `git push`, and `gh pb` when the body differs from the one last posted. Merged or closed: refused |
+| `pr-body` | worktree | the PR is open; `body`'s checks; its body on GitHub is the one the runner last posted, or the one `live_sha256` names | `gh pb` |
+| `review` | main | the PR is open; Copilot's review was requested | `gh pr view <n> --json state,reviews`, once a poll, until a review by Copilot is posted or the PR closes; then `gh api --paginate repos/<owner>/<repo>/pulls/<n>/reviews/<review>/comments` for that review's comments; no ▶ (§3.6) |
 | `worktask-done` | main | the PR is merged; the worktree is clean | `worktask done <id>`; when that succeeds, moves the item's cards to `.tmp/plan-board/done/` (§3.3) |
 
-- **No `add -A`.** `commit` and `ship` stage only the paths the card names, so a stray file never
-  rides along.
+- **No `add -A`, and nothing else staged.** `commit` and `ship` stage only the paths the card names,
+  and refuse before `git add` when anything outside them is already staged, because `git commit`
+  takes the whole index. So a stray file never rides along.
+- **What a step reads is what was reviewed.** A file can change between its hash check and the step
+  that reads it, so the runner also checks what each step used. It reads the message and body into
+  memory when it checks their hashes. After `git add` it hashes each staged blob (`git show
+  :<path>`) against the card and confirms the index differs from `HEAD` only at the card's paths,
+  before it commits. After `git commit` it compares the commit's message with the checked message,
+  cleaned up the way git does it (`git stripspace`). On a mismatch it undoes its own commit with
+  `git reset --soft HEAD~1`, logs that, and refuses before any push. A body goes straight to GitHub,
+  so after `gh pc` or `gh pb` the runner reads it back with `gh pr view --json body`. A body that
+  isn't the checked one is a `failed` outcome, and the posted body is saved as `pr-body-live.md`.
 - **Resumable steps.** A step that has already happened is skipped, not repeated: `commit` with
   nothing to commit in its paths, a push when `origin` already has `HEAD`, and `gh pc` when the PR
   exists. A `ship` that failed at its push can be planted again and runs from the push.
-- **An edit on GitHub stops `gh pb`.** After `gh pc` or `gh pb`, the runner records the body's
-  SHA-256 beside the item's cards, in `.pr-body.sha256`. Before the next `gh pb`, it reads the
-  live body with `gh pr view --json body` and hashes it, with line endings normalised first,
-  because GitHub may store a body with CRLF 🔍 unverified. A different hash means someone edited
-  the body on GitHub. The runner refuses before any write and saves the live body beside the cards
-  as `pr-body-live.md`, and the result names it. Claude folds the edit into the body file and
-  plants the card again.
+- **An edit on GitHub stops `gh pb`.** After `gh pc` or `gh pb`, the runner saves the body it posted
+  beside the item's cards, as `pr-body-posted.md`. Before the next `gh pb`, it reads the live body
+  with `gh pr view --json body` and compares the two, with line endings normalised first, because
+  GitHub may store a body with CRLF 🔍 unverified. A difference means someone edited the body on
+  GitHub. The runner refuses before any write, saves the live body beside the cards as
+  `pr-body-live.md`, and the result names it. Claude folds the edit into the body file and plants
+  the card again, with the live body's hash as `live_sha256` on its `body`. The runner then accepts
+  a live body that matches either one, so a further edit on GitHub still refuses. Peter reviews the
+  fold-in as a diff against `pr-body-live.md` (§3.6).
+- **A force-push never drops a commit.** After the fetch, `rebase` refuses before it rebases when
+  the branch's tip on `origin` isn't an ancestor of `HEAD`: `origin` has a commit the worktree
+  doesn't, and the push would lose it. Claude reconciles the branch first. The push's lease names
+  that tip, `--force-with-lease=<branch>:<sha>`, so a push someone makes after the check is refused
+  too. The card's `steps` carry the SHA Claude saw, so if the tip moves after planting the steps
+  differ, and the card is refused.
 - **Conflicts stop.** A `rebase` that conflicts runs `git rebase --abort`, records the conflicting
   files, and stops. The branch is as it was.
 - **On the default branch, nothing runs.** Every worktree recipe refuses when `HEAD` is the default
@@ -420,12 +438,13 @@ DONE
   the item's next card, `<nn>-review.yml`, with `planted_by: runner`, `runs_in: main` and the PR's
   number. It has no ▶: it writes nothing to GitHub, so there is nothing for Peter to approve. The
   sidebar runs `plan_board.py poll <card>` every 60 seconds. The first poll appends the `run` block,
-  and each poll appends one line to the `log`. When a review by Copilot is posted, the poll appends
-  the `result` and a `review` block with its state, its summary and each comment with its file and
-  line. The row shows *Copilot reviewing* until then, and *Copilot reviewed · 3 comments* after, and
-  a toast offers *Open PR* and *Send to Claude*. Claude's fixes go out in a new `ship` card, which
-  waits for ▶ while Peter reviews them in the worktree; nothing is pushed until he presses it. A
-  GitHub webhook would need a public URL to call, which the sidebar doesn't have, so the card polls.
+  and each poll appends one line to the `log`. When a review by Copilot is posted, the poll reads
+  its comments and appends the `result` and a `review` block with its state, its summary and each
+  comment with its file and line. The row shows *Copilot reviewing* until then, and *Copilot
+  reviewed · 3 comments* after, and a toast offers *Open PR* and *Send to Claude*. Claude's fixes go
+  out in a new `ship` card, which waits for ▶ while Peter reviews them in the worktree; nothing is
+  pushed until he presses it. A GitHub webhook would need a public URL to call, which the sidebar
+  doesn't have, so the card polls.
 
 The view is read with `plan_board.py list`, refreshed by a file watcher on each repo's
 `.tmp/plan-board/` and `.tracker/ready.yml`, in its main checkout. Every state has a word and an
@@ -434,8 +453,11 @@ icon, never colour alone.
 **Review.** Selecting a card opens its review: `why` at the top, then the card's `steps` as the card
 lists them, then each file. A spent card shows its `run` block, its `result` and its log below them.
 A path to commit opens in the diff editor against `HEAD`
-([`vscode.diff`](https://code.visualstudio.com/api/references/commands)); a message or body opens as
-the file. A file whose hash no longer matches is marked *changed* in the tree before ▶ is pressed.
+([`vscode.diff`](https://code.visualstudio.com/api/references/commands)), and a message opens as the
+file. A body opens as the file for a new PR. For an open PR it opens in the diff editor against
+what's on GitHub: `pr-body-live.md` when the card has `live_sha256`, otherwise `pr-body-posted.md`.
+A body whose bytes match that copy isn't shown, and `gh pb` doesn't run for it. A file whose hash no
+longer matches is marked *changed* in the tree before ▶ is pressed.
 
 **Use my edits.** On a card with a *changed* file, waiting or refused, *Use my edits* lets Peter
 keep his own edit without a trip through Claude. It opens each changed file again, a path to commit
@@ -467,8 +489,11 @@ be bound to a key and run from the command palette.
 |---|---|---|
 | A recipe fails partway, such as `ship` committing then failing to push | The commit is made; nothing is pushed | The result records the step reached, and the log the command that failed. Claude plants the card again, and the resumable steps skip the commit and run from the push |
 | A card's files changed after Claude planted it | ▶ would ship something Peter didn't review | The hash check refuses before any write, naming the file. If the change is Peter's, he presses *Use my edits*. Otherwise Claude plants a new card from the files as they stand, without rewriting them |
-| The PR's body was edited on GitHub | `gh pb` would overwrite the edit | `ship` and `pr-body` compare the live body with the one last pushed and refuse on a difference, saving the live body for Claude to fold in |
+| The PR's body was edited on GitHub | `gh pb` would overwrite the edit | `ship` and `pr-body` compare the live body with the one last posted and refuse on a difference, saving the live body. Claude folds it in and plants the card again with `live_sha256`, and Peter reviews the fold-in as a diff against the live body |
+| A file changes between its hash check and the step that reads it | A commit or a body Peter didn't review | The runner checks the staged blobs and the commit's message before any push and undoes its own commit on a mismatch. It reads a body back after posting it (§3.2) |
+| Something outside `paths` is already staged | `git commit` would take it along | `commit` and `ship` refuse before `git add`, naming the staged paths |
 | Push rejected because the branch on `origin` moved | Nothing pushed | `failed`, with git's message. Claude plants a `rebase` card, then the `ship` again |
+| The branch on `origin` has a commit the worktree doesn't | A rebase and force-push would drop it | `rebase` refuses before it rebases, naming the commit. Claude reconciles the branch, then plants the `rebase` again |
 | `rebase` conflicts | The rebase can't finish | The runner aborts it, so the branch is as it was, and records the conflicting files. Claude resolves them on the branch; Peter runs the next `rebase` |
 | A card goes stale after its PR merges | A `ship` or `pr-body` would act on a merged PR | `ship` reads the PR's state and refuses a merged or closed PR; `pr-body` needs it open |
 | ▶ pressed twice, or in two windows | Two runs of one card | The `O_EXCL` lock lets one through. The second shows the lock's holder. A card with a result never runs again |
@@ -558,8 +583,18 @@ The runner's tests live beside it, `~/.claude/skills/plan-board/scripts/test_pla
 - `commit` with a `deleted` path, once after a `git mv` and once after a plain `rm`: the first
   leaves the path out of `git add`, the second names it, and both commits carry the removal.
 - `rebase` gets a conflicting case and asserts the branch is unchanged afterwards.
-- `ship` and `pr-body` against a stub PR whose body differs from the recorded hash: refused, the
-  live body saved, `gh pb` never called. A CRLF copy of the same body passes.
+- `ship` and `pr-body` against a stub PR whose body differs from `pr-body-posted.md`: refused, the
+  live body saved, `gh pb` never called. A CRLF copy of the same body passes. The card planted again
+  with `live_sha256` passes, and a second edit on GitHub after that refuses.
+- `ship` on an open PR whose body matches `pr-body-posted.md`: its steps leave out `gh pb`.
+- An edit between a hash check and its step: a path changed before `git add`, and the message
+  changed before `git commit`. Each is caught before any push, the runner's commit is undone, and
+  nothing reaches the bare remote. A stub `gh` that stores a different body from the one it was
+  given makes `ship` fail, with the posted body saved.
+- `commit` and `ship` with an unrelated file already staged: refused before `git add`, naming it.
+- `rebase` when the bare remote's branch has a commit the worktree lacks: refused before the rebase,
+  and the remote unchanged. A push to the remote between planting and ▶ makes the card's lease SHA
+  stale, and the card is refused.
 - A card with `restamped` runs, and the result carries it.
 - `start` plants card 01 with `planted_by: person` and the `person` from `git config user.name`,
   or the `gh` login when that's unset, and runs it. It refuses an item that isn't Todo or already
@@ -576,8 +611,9 @@ The runner's tests live beside it, `~/.claude/skills/plan-board/scripts/test_pla
   leaves the outcome `done` with `review_requested: failed`. `ship` on an open PR doesn't
   re-request.
 - A `ship` that requests Copilot plants the next card, a `review` with `planted_by: runner`. `poll`
-  against stub PRs: no review yet appends one log line, a review by Copilot appends the `result`
-  and the `review` block once, a closed PR appends a `failed` result, and a card with a result
+  against stub PRs: no review yet appends one log line, a review by Copilot has its comments read
+  with `--paginate` and appends the `result` and the `review` block once, with each comment's file
+  and line, a closed PR appends a `failed` result, and a card with a result
   refuses the next poll. `results.py` adds the `review` block once.
 - The lock: two `run`s of one card at once, and a stale lock.
 - `deny_plan_board.py` and `results.py` are run with sample hook input on stdin, and their JSON

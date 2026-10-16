@@ -15,6 +15,7 @@ Build the runner of [design 0003](../../docs/design/0003-plan-board.md) §3.1 to
 - `start`, which plants card 01 and runs it; `poll`, one poll of a `review` card; `list`.
 - The seven recipes with their checks: `worktask-start`, `commit`, `rebase`, `ship`, `pr-body`, `review`, `worktask-done`.
 - The live-body check before `gh pb`, and keeping the last three items done after `worktask-done`.
+- The design §3.2 checks that a step reads what was reviewed: the staged blobs and commit message checked before any push, the body read back after posting, nothing outside `paths` staged, and `rebase`'s lease pinned to a fetched tip that `HEAD` contains.
 
 ### Guardrails
 - The runner runs a card's `steps` only when they are exactly what its recipe would run now; a recipe it doesn't know is refused.
@@ -39,6 +40,7 @@ Build the runner of [design 0003](../../docs/design/0003-plan-board.md) §3.1 to
 ### Done
 - [ ] Each test listed for the runner in design §6 passes.
 - [ ] L1: a card naming an unknown recipe, with a changed file, or with a step its recipe wouldn't run, is refused.
+- [ ] L1: a file edited between its hash check and its step never reaches the remote.
 - [ ] L3: a run killed partway leaves a card that parses, which `run` then refuses.
 - [ ] L5: every run appends tool versions, a timestamped log and a result.
 - [ ] L8: the suite runs with no network.
