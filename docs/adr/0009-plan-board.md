@@ -44,8 +44,8 @@ Claude prepares and Peter presses Go.
   works out its recipe's commands again at ▶ and refuses a card whose steps differ. An item's
   cards are its steps in order, starting with 01 `worktask-start`. They outlive the worktree, and
   each repo keeps the cards of its last three items done.
-- **Recipes.** The runner, `plan_board.py`, knows eight recipes: `worktask-start`, `commit`,
-  `rebase`, `ship`, `pr-body`, `review`, `issue-close` and `worktask-done`. Each one checks its preconditions, runs
+- **Recipes.** The runner, `plan_board.py`, knows seven recipes: `worktask-start`, `commit`,
+  `rebase`, `ship`, `pr-body`, `review` and `worktask-done`. Each one checks its preconditions, runs
   in its own directory, and refuses rather than guesses. A card whose files changed since it was
   planted is refused.
 - **The plan board.** A VS Code sidebar lists, across the repos Peter lists, each repo's ready
@@ -88,11 +88,11 @@ Claude prepares and Peter presses Go.
 
 - Peter copies no commands. Every push and `gh` write still happens only when he presses ▶.
 - Invariant 5 gains an exception outside the tool: a card Peter presses may push an item branch,
-  open or update its PR with `gh pc` or `gh pb`, request Copilot's review of a PR it opens, and
-  close the issues an import moved into item files. Invariant 6 is unchanged, because gh-plan gains no code that spawns a process.
+  open or update its PR with `gh pc` or `gh pb`, and request Copilot's review of a PR it opens.
+  Invariant 6 is unchanged, because gh-plan gains no code that spawns a process.
 - The hand-over in `post-pr`, `worktask` and the gh-issues *Complete* page changes from a command
   line to a card. Until the runner ships, Peter runs a card's steps himself, copied from the card.
-- The eight recipes are the whole vocabulary. A step none of them covers is a new recipe, added to
+- The seven recipes are the whole vocabulary. A step none of them covers is a new recipe, added to
   the runner and reviewed like code, never a command added to a card.
 - The sidebar depends on VS Code's extension API and on the `gh` CLI being signed in. The runner
   works without the sidebar, from a terminal.

@@ -8,7 +8,7 @@ ordinal: 20675
 lane: infra
 milestone: phase-2
 blocked_by:
-  - "pl-jemuj - plan_board.py: the plan-board runner, its card format and eight recipes"
+  - "pl-jemuj - plan_board.py: the plan-board runner, its card format and seven recipes"
 ---
 ### Task
 Build the two hooks of [design 0003](../../docs/design/0003-plan-board.md) §3.4 and §3.5, registered in user settings:

@@ -374,8 +374,8 @@ matter as a table above the body, which covers reading.
    and leaves `started` as the record of the false start, and a later start keeps it (§7.1, §7.2).
 5. The tool's only remote write is a `git push` of its own commits. It never writes through
    GitHub's API (§6.2). Outside the tool, a plan-board card Peter presses may push an item branch, open
-   or update its PR with `gh pc` or `gh pb`, request Copilot's review of a PR it opens, and close
-   the issues an import moved into item files; no agent runs one
+   or update its PR with `gh pc` or `gh pb`, and request Copilot's review of a PR it opens; no
+   agent runs one
    ([ADR 0009](adr/0009-plan-board.md)).
 6. `gh.py`, `git.py` and the `timekeeping/` adapters are the only modules that spawn a process or
    open a network connection (§6.2).
