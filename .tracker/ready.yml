@@ -1,4 +1,4 @@
-generated_at: 2026-10-16T01:33:24Z
+generated_at: 2026-10-16T02:38:44Z
 ready:
   - id: pl-nahuj
     title: Fixture trees and a converter from JSON trackers
@@ -135,15 +135,6 @@ ready:
     priority: P2
     focus: false
     unblocks: [pl-mubab, pl-rihot, pl-rules]
-  - id: pl-senif
-    title: "Design 0003 and ADR 0009: the Go board"
-    estimate: 3
-    duration_weeks: 0.09
-    lane: web
-    milestone: phase-2
-    priority: P2
-    focus: false
-    unblocks: []
   - id: pl-tijog
     title: Drag to change status
     estimate: 3

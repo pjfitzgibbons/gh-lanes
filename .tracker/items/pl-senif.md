@@ -1,12 +1,13 @@
 ---
 title: "Design 0003 and ADR 0009: the Go board"
 type: chore
-status: Todo
+status: In Progress
 estimate: 3
 priority: P2
 ordinal: 20660
 lane: web
 milestone: phase-2
+started: 2026-10-16T02:38:44Z
 ---
 ### Task
 Design the Go board: Claude writes action cards for each step it would otherwise hand over as a command, and Peter reviews each card's files and runs it with one press, in VS Code first. Commands are no longer copied into a terminal by hand, and no paid API tokens are spent.
