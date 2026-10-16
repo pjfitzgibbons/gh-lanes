@@ -42,8 +42,15 @@ settings: what this repo needs is here or in `.claude/`.
 
 ## Boundaries
 
-- **Peter runs the commands.** Hand him the command, except reads, inspections, the test suite,
-  and cleaning up your own mess. Commit or push only when asked. Explain why before the command.
+- **Peter runs the commands, from plan-board cards.** Hand over each commit, push or `gh` write as
+  a card in the main checkout's `.tmp/plan-board/<id>/`
+  ([design 0003](docs/design/0003-plan-board.md)), never as a line in chat, and say why in the
+  card. The card's `steps` list every command that will run, verbatim and in order; the runner
+  runs exactly those, and refuses a card whose steps differ from its recipe's. Until the runner
+  ships, Peter runs the card's steps himself, copied from the card. Read a card's result before
+  planting the next. Reads, inspections, the test suite and cleaning up your own mess you run
+  yourself.
+- **An agent commits only on its own item branch,** and only when asked.
 - **Never commit secrets.** The tool authenticates by shelling out to `gh` (requirement `G3`); do
   not add a library that needs a PAT.
 - **Never use real personal data** in fixtures, tests or examples.

@@ -73,6 +73,7 @@ traded · `COULD`: nice, and no tool gets credit for it over a MUST.
 | **D4** | MUST | **Single-valued lane membership** | An item in two contention domains breaks the invariant. A multi-value label cannot enforce this |
 | **D5** | SHOULD | Multiple concurrent sessions / worktrees supported without the tracker fighting it | |
 | **D6** | SHOULD | **`.tracker/ready.yml` is the committed answer to `plan ready`.** It lists the items `plan ready` reports (`D3`), at most 20, with what `ready` reports for each (ID, title, estimate, duration, lane, milestone, priority, focus, and what it unblocks), and when it was generated. Its as-of commit is the last commit that wrote it, which git and GitHub's file view both show; the file cannot name the commit that contains it. A second section lists the items in flight: each branch on `origin` that names an item, with the item's ID and title, the branch, its `started`, and the date of the branch's last commit | A viewer reads it on GitHub or in an editor with no tool installed. Only pushed branches are listed, so the file is the same whichever machine generates it |
+| **D7** | SHOULD | **One view of every item in progress across repos**: its branch, its worktree, and the actions waiting on it | Several items run at once in several repos, and the next step is lost switching windows |
 
 <a id="dependencies"></a>
 ## 6. Dependencies and ordering (E)
