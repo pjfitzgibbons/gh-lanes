@@ -9,17 +9,6 @@ ready:
     priority: P2
     focus: false
     unblocks: []
-generated_at: 2026-10-16T01:53:25Z
-ready:
-  - id: pl-veles
-    title: Import gh-plan's open GitHub issues into .tracker/items, then close them
-    estimate: 3
-    duration_weeks: 0.09
-    lane: github
-    milestone: bootstrap
-    priority: P1
-    focus: false
-    unblocks: [pl-datob, pl-nedet]
   - id: pl-dafip
     title: "plan start and plan stop: the curated start commit and the post-checkout hook"
     estimate: 5
@@ -146,6 +135,15 @@ ready:
     priority: P2
     focus: false
     unblocks: [pl-mubab, pl-rihot, pl-rules]
+  - id: pl-senif
+    title: "Design 0003 and ADR 0009: the Go board"
+    estimate: 3
+    duration_weeks: 0.09
+    lane: web
+    milestone: phase-2
+    priority: P2
+    focus: false
+    unblocks: []
   - id: pl-tijog
     title: Drag to change status
     estimate: 3
