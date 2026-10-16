@@ -1,0 +1,26 @@
+<h2>Lanes</h2>
+<% if @lane_field.nil? %>
+<p class="nodata">The lane board needs an issue custom field named <code>Lane</code>, and there is none.
+An administrator adds it under Administration › Custom fields.</p>
+<% else %>
+<% show = ->(n) { n.nil? ? '?' : n } %>
+<table class="list">
+  <thead><tr><th>Lane</th><% @statuses.each do |s| %><th><%= s.name %></th><% end %></tr></thead>
+  <tbody>
+  <% @lanes.each do |lane, issues| %>
+    <tr>
+      <th><%= lane %> (<%= show.(total(issues)) %> pts open)</th>
+      <% @statuses.each do |s| %>
+        <td>
+        <% issues.select { |i| i.status == s }.each do |i| %>
+          <div class="lane-card<%= ' ready' if ready?(i) %>">
+            <%= link_to_issue i, project: true %> · <%= show.(points(i)) %> pts<%= ' · ready' if ready?(i) %>
+          </div>
+        <% end %>
+        </td>
+      <% end %>
+    </tr>
+  <% end %>
+  </tbody>
+</table>
+<% end %>
