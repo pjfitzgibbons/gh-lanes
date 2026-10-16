@@ -12,6 +12,8 @@
   - [Backlog.md — installed v1.53.0, throwaway git repo](#backlogmd--installed-v1530-throwaway-git-repo)
   - [Leantime — source inspection of v3.11 (not a live instance)](#leantime--source-inspection-of-v311-not-a-live-instance)
   - [Test 3 — not run](#test-3--not-run)
+- [Re-survey, 2026-10-16: trackers outside the repo](#outside-the-repo)
+  - [Verified by hands-on test, 2026-10-16: Redmine 7.0.2](#redmine-7)
 
 Scored against [`requirements.md`](requirements.md). Survey 2026-10-10.
 
@@ -220,3 +222,56 @@ That is yours to do, not mine. Fifteen minutes gets ~25 🔍 cells resolved; the
 2. Can a sub-task carry its **own** estimate, and does it roll up without double-counting? (`A4 A5`)
 3. Is there a **full export** in a documented format? (`G1 G2`)
 4. Shortcut: are **story links and estimates** available on Free at all?
+
+---
+
+<a id="outside-the-repo"></a>
+## Re-survey, 2026-10-16: trackers outside the repo
+
+The question changed: which free tracker, run outside the repos it plans, is easiest to extend to
+the requirements it misses? This section scores against the requirements as they stand on
+2026-10-16, after [`B3`](requirements.md) became a practice with a reality check.
+
+| Tool | Licence | Extension point | Native | Gaps, and how to close them | Extend it? |
+|---|---|---|---|---|---|
+| **Redmine 7** | GPL-2.0 | Ruby plugins, hooks, REST | Shared versions, sub-tasks, `blocks` with cycle check, "blocked by no open issues" filter, Gantt, commit keywords | Lane board, reality checks: a plugin. Swimlanes in RedmineUP Agile are PRO (€499) | **Easy**, [tested](#redmine-7) |
+| **YouTrack** | Closed | JavaScript workflows, apps, REST | Gantt across projects, swimlanes by custom field, points, `depends on` | Baseline, ready flag, cycle guard: workflows. Free tier for 10 users; "all features" not confirmed by JetBrains 🔍 | Easy |
+| **OpenProject CE** | GPL-3.0 | Rails engines, REST | Gantt, shared versions, points, cycle check | Baseline is Enterprise Basic 💰; no board by custom field | Hard-ish |
+| **Frappe** + own app | MIT | Python apps, server scripts, REST | Generic Gantt with arrows, kanban by any select field, cycle check (ERPNext `Task`) | Projects ships inside ERPNext; otherwise write the task app. MariaDB and Redis | Easy, but a build |
+| **Taskwarrior** + **TaskJuggler** | MIT, GPL-2.0 | Python hooks, custom attributes | Cycle refusal, ready report; TaskJuggler scenarios give a baseline and Gantt | No board; glue to write; TaskJuggler's last release July 2025 | Viable, assembled |
+| **Odoo CE** | LGPL-3.0 | Python modules | Dependencies with cycle check, blocked state | Gantt is Enterprise; OCA timeline instead | Medium |
+| **Grist** | Apache-2.0 | Python formulas, JS widgets | Timeline widget | Everything else is built | Medium |
+
+Ruled out on this pass: **Plane CE** (custom properties, milestones and timeline dependencies are
+paid; no plugins), **Leantime** (no dependencies; Custom Fields and Program Plans are paid
+plugins), **Taiga** (no Gantt, no dependencies), **Tuleap CE** (Roadmap, Baseline and program
+management are Enterprise), **Huly** (frozen), **Linear Free** (250 issues, no custom fields),
+**GitLab Free** (blocking links, weight and roadmap are Premium), **Jira Free** (cross-project
+plans are Premium), **Shortcut Free** (one workflow, paid automations), **Vikunja** (no custom
+fields), **Kanboard** (maintenance mode, Gantt plugin archived), **Phorge** (no Gantt), **Trac**
+(one project per environment), **Worklenz** (no API), **ZenTao** (custom fields paid),
+**NocoDB** and **Baserow** (timeline views paid).
+
+<a id="redmine-7"></a>
+### Verified by hands-on test, 2026-10-16: Redmine 7.0.2
+
+The official `redmine:7.0` image with SQLite, four throwaway git repos, and the REST API. Neither
+third-party plugin was installed: Easy Gantt and Agile Light are both downloaded through an email
+form, and Easy Gantt lists Redmine 6 as its newest.
+
+| Req | Result | How |
+|---|---|---|
+| **A1 A2** | ✅ | A parent project with one sub-project per repo; a version in the parent, shared with its tree, is offered in all four |
+| **A4** | ✅ | A sub-task with its own dates and estimate, in its own Gantt row |
+| **B1 B2** | ✅ | A list custom field of 1, 2, 3, 5, 8, 13. `4` is refused: "Points is not included in the list" |
+| **C3** | ✅ | Baseline date fields, read-only for the Developer role by workflow. A Developer's change is dropped without an error |
+| **C4** | ✅ | The administrator re-baselines with a note; the journal records who, when, old and new value, and the note |
+| **C5** | ✅ | `refs #1` links the commit; `fixes #3` closes the issue and the issue keeps the commit time. A commit older than the repository's registration never changes a status (`app/models/changeset.rb:153`) |
+| **C7** | ✅ | The core Gantt spans all four projects, with version progress. It draws no baseline |
+| **D1 D4** | ✅ | A single-valued list field; two values are refused: "Lane is invalid" |
+| **D2** | ✅ plugin | A 65-line plugin of ours: lanes as rows, statuses as columns, open points per lane |
+| **D3** | ✅ | The core filter "Blocked by: no open issues"; the plugin marks the same items ready |
+| **E1 E2** | ✅ | `blocks` across projects; a relation closing a cycle is refused: "This relation would create a circular dependency" |
+
+Not covered: velocity and duration from it (`C1`, `C2`), a baseline drawn on the Gantt, and an
+Icebox status the board leaves out.
