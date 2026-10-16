@@ -1,7 +1,7 @@
 ---
 title: Import gh-plan's open GitHub issues into .tracker/items, then close them
 type: chore
-status: Todo
+status: In Progress
 estimate: 3
 priority: P1
 ordinal: 800
@@ -11,6 +11,7 @@ blocked_by:
   - "pl-kozot - Schemas: Item, Milestone and Config for file-native trackers"
   - "pl-ganot - store.py: YAML and Markdown front matter, in one canonical form"
   - "pl-jamup - IDs: draw a word, keep the blocklist, resolve what is typed"
+started: 2026-10-15T18:36:08Z
 ---
 ### Task
 Move gh-plan's open GitHub issues into item files once, then close them on GitHub with a pointer to the file, so GitHub Issues stops being where this repo's work is tracked (ADR 0008).
