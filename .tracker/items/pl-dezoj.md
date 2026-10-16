@@ -1,12 +1,13 @@
 ---
 title: "Redmine setup: compose file, projects, custom fields and repositories"
 type: chore
-status: Todo
+status: In Progress
 estimate: 3
 priority: P2
 ordinal: 100
 lane: infra
 milestone: redmine
+started: 2026-10-16T21:51:08Z
 ---
 ### Task
 Make gh-plan the Redmine setup [ADR 0011](../../docs/adr/0011-redmine-is-the-tracker.md) describes, reproducible from the repo:

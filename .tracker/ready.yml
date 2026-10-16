@@ -1,14 +1,5 @@
-generated_at: 2026-10-16T21:46:31Z
+generated_at: 2026-10-16T21:51:08Z
 ready:
-  - id: pl-dezoj
-    title: "Redmine setup: compose file, projects, custom fields and repositories"
-    estimate: 3
-    duration_weeks: 0.09
-    lane: infra
-    milestone: redmine
-    priority: P2
-    focus: false
-    unblocks: [pl-japih, pl-pakiz, pl-derib, pl-pedug]
   - id: pl-vejud
     title: "README: what GH Plan is, install, running tests"
     estimate: 1
