@@ -1,12 +1,13 @@
 ---
 title: "ADR 0010: plan state lives on a gh-plan branch, checked out at .tracker/"
 type: chore
-status: Todo
+status: In Progress
 estimate: 2
 priority: P2
 ordinal: 20680
 lane: infra
 milestone: phase-2
+started: 2026-10-16T15:16:46Z
 ---
 ### Task
 Decide, in ADR 0010, that a repo's plan state lives on its own `gh-plan` branch rather than on the default branch:
