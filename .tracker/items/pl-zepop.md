@@ -1,7 +1,7 @@
 ---
 title: Watch for new gh releases and contract-check the recorded output against them
 type: feat
-status: Todo
+status: Icebox
 estimate: 3
 priority: P2
 ordinal: 12800

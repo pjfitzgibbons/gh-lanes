@@ -1,7 +1,7 @@
 ---
 title: "index.py: SQLite build, v_work view, plan reindex"
 type: feat
-status: Todo
+status: Icebox
 estimate: 3
 priority: P2
 ordinal: 10700

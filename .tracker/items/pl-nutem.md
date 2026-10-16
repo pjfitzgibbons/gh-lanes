@@ -1,7 +1,7 @@
 ---
 title: "Root pointer: sibling repos find the tracker without PLAN_ROOT"
 type: feat
-status: Todo
+status: Icebox
 estimate: 2
 priority: P2
 ordinal: 12900

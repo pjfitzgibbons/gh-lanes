@@ -1,7 +1,7 @@
 ---
 title: Ready-queue and roll-up tables
 type: feat
-status: Todo
+status: Icebox
 estimate: 2
 priority: P2
 ordinal: 20500

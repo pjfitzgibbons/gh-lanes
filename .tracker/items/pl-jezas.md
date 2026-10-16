@@ -1,7 +1,7 @@
 ---
 title: End-to-end test over the fixture tree
 type: feat
-status: Todo
+status: Icebox
 estimate: 1
 priority: P2
 ordinal: 11600

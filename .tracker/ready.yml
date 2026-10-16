@@ -1,23 +1,14 @@
-generated_at: 2026-10-16T20:44:21Z
+generated_at: 2026-10-16T21:46:31Z
 ready:
-  - id: pl-nahuj
-    title: Fixture trees and a converter from JSON trackers
+  - id: pl-dezoj
+    title: "Redmine setup: compose file, projects, custom fields and repositories"
     estimate: 3
     duration_weeks: 0.09
-    lane: model
-    milestone: bootstrap
+    lane: infra
+    milestone: redmine
     priority: P2
     focus: false
-    unblocks: []
-  - id: pl-dafip
-    title: "plan start and plan stop: the curated start commit and the post-checkout hook"
-    estimate: 5
-    duration_weeks: 0.14
-    lane: engine
-    milestone: bootstrap
-    priority: P2
-    focus: false
-    unblocks: []
+    unblocks: [pl-japih, pl-pakiz, pl-derib, pl-pedug]
   - id: pl-vejud
     title: "README: what GH Plan is, install, running tests"
     estimate: 1
@@ -54,42 +45,6 @@ ready:
     priority: P2
     focus: false
     unblocks: []
-  - id: pl-gaseb
-    title: "git.py: repo root and commit helper"
-    estimate: 1
-    duration_weeks: 0.03
-    lane: github
-    milestone: phase-1
-    priority: P2
-    focus: false
-    unblocks: [pl-mokov, pl-nivad]
-  - id: pl-bogeh
-    title: "index.py: SQLite build, v_work view, plan reindex"
-    estimate: 3
-    duration_weeks: 0.09
-    lane: engine
-    milestone: phase-1
-    priority: P2
-    focus: false
-    unblocks: [pl-gilis]
-  - id: pl-taroz
-    title: "validate.py: all 17 rules, tests first"
-    estimate: 3
-    duration_weeks: 0.09
-    lane: engine
-    milestone: phase-1
-    priority: P2
-    focus: false
-    unblocks: [pl-mikad, pl-mokov]
-  - id: pl-kumib
-    title: "Acceptance: work from plan next daily"
-    estimate: 1
-    duration_weeks: 0.03
-    lane: infra
-    milestone: phase-1
-    priority: P2
-    focus: false
-    unblocks: []
   - id: pl-hahuk
     title: "Timewarrior adapter for tt: TimeSource, snapshot, ActualTime"
     estimate: 3
@@ -108,51 +63,6 @@ ready:
     priority: P2
     focus: false
     unblocks: [pl-kabij]
-  - id: pl-zepop
-    title: Watch for new gh releases and contract-check the recorded output against them
-    estimate: 3
-    duration_weeks: 0.09
-    lane: infra
-    milestone: phase-1
-    priority: P2
-    focus: false
-    unblocks: []
-  - id: pl-nutem
-    title: "Root pointer: sibling repos find the tracker without PLAN_ROOT"
-    estimate: 2
-    duration_weeks: 0.06
-    lane: model
-    milestone: phase-1
-    priority: P2
-    focus: false
-    unblocks: [pl-nivad]
-  - id: pl-butuv
-    title: Jinja base template and plan render
-    estimate: 3
-    duration_weeks: 0.09
-    lane: web
-    milestone: phase-2
-    priority: P2
-    focus: false
-    unblocks: [pl-mubab, pl-rihot, pl-rules]
-  - id: pl-tijog
-    title: Drag to change status
-    estimate: 3
-    duration_weeks: 0.09
-    lane: web
-    milestone: phase-3
-    priority: P2
-    focus: false
-    unblocks: [pl-pafof]
-  - id: pl-notem
-    title: Package as a gh extension
-    estimate: 2
-    duration_weeks: 0.06
-    lane: infra
-    milestone: phase-3
-    priority: P2
-    focus: false
-    unblocks: []
 in_flight:
   - id: pl-veles
     title: Import gh-plan's open GitHub issues into .tracker/items, then close them

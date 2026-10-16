@@ -1,7 +1,7 @@
 ---
 title: Pre-commit hook that runs plan validate
 type: feat
-status: Todo
+status: Icebox
 estimate: 1
 priority: P2
 ordinal: 11700

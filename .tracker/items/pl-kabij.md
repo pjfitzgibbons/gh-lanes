@@ -1,7 +1,7 @@
 ---
 title: "Design 0001: next/ready without lane heads; §8.5 repo scope"
 type: feat
-status: Todo
+status: Icebox
 estimate: 3
 priority: P2
 ordinal: 12600

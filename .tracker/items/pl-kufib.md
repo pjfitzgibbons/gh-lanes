@@ -1,7 +1,7 @@
 ---
 title: "plan.py: duration, lane heads, next/ready/why, schedule"
 type: feat
-status: Todo
+status: Icebox
 estimate: 3
 priority: P2
 ordinal: 11000

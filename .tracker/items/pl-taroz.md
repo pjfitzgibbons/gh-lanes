@@ -1,7 +1,7 @@
 ---
 title: "validate.py: all 17 rules, tests first"
 type: feat
-status: Todo
+status: Icebox
 estimate: 3
 priority: P2
 ordinal: 10900

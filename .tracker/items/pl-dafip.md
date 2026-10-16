@@ -1,7 +1,7 @@
 ---
 title: "plan start and plan stop: the curated start commit and the post-checkout hook"
 type: feat
-status: Todo
+status: Icebox
 estimate: 5
 priority: P2
 ordinal: 1000

@@ -1,7 +1,7 @@
 ---
 title: "cli.py: query commands with --json"
 type: feat
-status: Todo
+status: Icebox
 estimate: 2
 priority: P2
 ordinal: 11200

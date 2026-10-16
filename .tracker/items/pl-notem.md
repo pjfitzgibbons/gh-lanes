@@ -1,7 +1,7 @@
 ---
 title: Package as a gh extension
 type: feat
-status: Todo
+status: Icebox
 estimate: 2
 priority: P2
 ordinal: 31300
