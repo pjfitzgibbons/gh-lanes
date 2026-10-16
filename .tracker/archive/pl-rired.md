@@ -21,10 +21,10 @@ Add the lane-board plugin from the Redmine 7.0.2 test ([ADR 0011](../../docs/adr
 - No real personal data in anything committed with it.
 
 ### Lenses
-- [ ] L1 Security
+- [x] L1 Security: a `Lane` or `Points` field hidden from a role
 - [ ] L2 Privacy and data
 - [x] L3 Reliability and failure: a missing `Lane` or `Points` field
-- [ ] L4 Performance and limits
+- [x] L4 Performance and limits: one query per blocking relation
 - [ ] L5 Observability
 - [x] L6 Compatibility and migration: Redmine 7.0's plugin API
 - [ ] L7 Usability and accessibility
@@ -39,3 +39,5 @@ Add the lane-board plugin from the Redmine 7.0.2 test ([ADR 0011](../../docs/adr
 - [x] L8: in that container, the Lanes tab shows each lane's open leaf points and marks ready issues.
 - [x] L3: with no `Lane` field, the tab shows a message instead of an error.
 - [x] L10: the README says how to mount the plugin and which custom fields it needs.
+- [x] L1: a `Lane` or `Points` field hidden from the user's role in an issue's project reads as unset on the board.
+- [x] L4: the board's query count does not grow with the number of blocking relations.
