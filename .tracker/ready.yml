@@ -8,7 +8,7 @@ ready:
     milestone: bootstrap
     priority: P1
     focus: false
-    unblocks: [pl-datob]
+    unblocks: [pl-datob, pl-nedet]
   - id: pl-dafip
     title: "plan start and plan stop: the curated start commit and the post-checkout hook"
     estimate: 5
