@@ -1,13 +1,14 @@
 ---
 title: "Redmine setup: the lane-board plugin"
 type: feat
-status: Todo
+status: In Progress
 estimate: 2
 priority: P2
 ordinal: 300
 lane: infra
 milestone: phase-2
 blocked_by: []
+started: 2026-10-16T20:44:21Z
 ---
 ### Task
 Add the lane-board plugin from the Redmine 7.0.2 test ([ADR 0011](../../docs/adr/0011-redmine-is-the-tracker.md), [survey, *Redmine 7*](../../docs/alternatives-survey.md#redmine-7)) to gh-plan, at `redmine/plugins/lane_board/`. It shows a project tree's issues with lanes as rows and statuses as columns, totals the open points of each lane over leaf issues only, and marks an issue ready when it is open and every issue blocking it is closed.
