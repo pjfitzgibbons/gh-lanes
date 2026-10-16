@@ -1,7 +1,7 @@
 ---
 title: "Design 0003 and ADR 0009: the work console in Claude Desktop"
 type: chore
-status: Todo
+status: In Progress
 estimate: 3
 priority: P2
 ordinal: 20650
@@ -9,6 +9,7 @@ lane: web
 milestone: phase-2
 blocked_by:
   - "pl-veles - Import gh-plan's open GitHub issues into .tracker/items, then close them"
+started: 2026-10-16T01:53:25Z
 ---
 ### Task
 Design how Claude Desktop runs an item's work: one Desktop session per item worktree, every item in flight visible in Desktop's sidebar, and the hand-off of commit, push, PR and cleanup as a skill now and a mod button later. This replaces the localhost console that hosts agents through the Agent SDK, and `worktask`'s VS Code hand-off, which relies on undocumented parts of the Claude Code extension.

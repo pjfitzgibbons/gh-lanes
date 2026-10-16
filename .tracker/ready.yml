@@ -1,4 +1,4 @@
-generated_at: 2026-10-16T01:28:45Z
+generated_at: 2026-10-16T01:53:25Z
 ready:
   - id: pl-veles
     title: Import gh-plan's open GitHub issues into .tracker/items, then close them
