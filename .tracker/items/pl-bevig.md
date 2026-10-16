@@ -8,7 +8,7 @@ ordinal: 20680
 lane: web
 milestone: phase-2
 blocked_by:
-  - "pl-jemuj - plan_board.py: the plan-board runner, its card format and seven recipes"
+  - "pl-jemuj - plan_board.py: the plan-board runner, its card format and eight recipes"
 ---
 ### Task
 Grow `worktask`'s VS Code extension into `pjfitzgibbons.plan-board`, the sidebar of [design 0003](../../docs/design/0003-plan-board.md) §3.6:

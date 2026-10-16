@@ -1,5 +1,5 @@
 ---
-title: "plan_board.py: the plan-board runner, its card format and seven recipes"
+title: "plan_board.py: the plan-board runner, its card format and eight recipes"
 type: feat
 status: Todo
 estimate: 3
@@ -13,7 +13,7 @@ Build the runner of [design 0003](../../docs/design/0003-plan-board.md) §3.1 to
 - The card format, `v: 1`: its `card` ID, its hashed files, its verbatim `steps`, a literal block above `paths` with one command to a line, read with ruamel.yaml from a PEP 723 block under `uv run`, and the `O_EXCL` lock.
 - `run`, which checks a card and runs its recipe, appending the `run` block, the log and the `result` to the card.
 - `start`, which plants card 01 and runs it; `poll`, one poll of a `review` card; `list`.
-- The seven recipes with their checks: `worktask-start`, `commit`, `rebase`, `ship`, `pr-body`, `review`, `worktask-done`.
+- The eight recipes with their checks: `worktask-start` (which also reopens an In Progress item with no worktree or branch), `commit`, `rebase`, `ship`, `pr-body`, `review`, `issue-close`, `worktask-done`.
 - The live-body check before `gh pb`, and keeping the last three items done after `worktask-done`.
 - The design §3.2 checks that a step reads what was reviewed: the staged blobs and commit message checked before any push, the body read back after posting, nothing outside `paths` staged, and `rebase`'s lease pinned to a fetched tip that `HEAD` contains.
 

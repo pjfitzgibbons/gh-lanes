@@ -8,7 +8,7 @@ ordinal: 20690
 lane: infra
 milestone: phase-2
 blocked_by:
-  - "pl-jemuj - plan_board.py: the plan-board runner, its card format and seven recipes"
+  - "pl-jemuj - plan_board.py: the plan-board runner, its card format and eight recipes"
   - "pl-noruj - The plan-board hooks: deny Claude the runner, hand it the results"
 ---
 ### Task

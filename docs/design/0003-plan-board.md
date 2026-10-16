@@ -34,7 +34,7 @@ writes it, Peter reviews its files and presses ▶. The board is a VS Code exten
 steps in order, from the start that marks it In Progress to the done that removes its worktree, and
 each card records how its step ran.
 
-**In:** the card format · the seven recipes and their checks · the runner, `plan_board.py` · the
+**In:** the card format · the eight recipes and their checks · the runner, `plan_board.py` · the
 hooks that keep Claude off the runner and hand it results · the VS Code extension and its sidebar,
 with each repo's ready list, its items in progress and its last items done · failure modes.
 
@@ -93,7 +93,8 @@ A card is a YAML file, `<nn>-<recipe>.yml`, in `.tmp/plan-board/<id>/` of the re
 whichever checkout its recipe runs in (§3.2). `<id>` is the item, and `<nn>` is the next free
 two-digit number in that directory, so an item's cards are one sequence, in the order they were
 planted. Card 01 is always `worktask-start`, which Peter plants by pressing ▶ *Start* on a ready
-item (§3.6). The runner plants a `review` card when `ship` opens a PR (§3.6). Claude plants the
+item (§3.6). Claude plants it instead to reopen an item that is In Progress but whose worktree and
+branch are gone. The runner plants a `review` card when `ship` opens a PR (§3.6). Claude plants the
 rest. Cards outlive the worktree. When `worktask-done` finishes the item, they move to
 `.tmp/plan-board/done/<id>/`, which keeps the last three items done (§3.3). The main checkout is the
 first entry of `git worktree list`, so the worktree's Claude finds it there. `.tmp/` is gitignored
@@ -139,7 +140,7 @@ paths:
 |---|---|
 | `card` | The card's ID, `<nn>-<recipe>`: its file name without `.yml`. It comes first, and the runner refuses a card whose ID doesn't match its file name |
 | `v` | The card format's version. The runner refuses a version it doesn't know |
-| `recipe` | One of the seven in §3.2. Anything else is refused |
+| `recipe` | One of the eight in §3.2. Anything else is refused |
 | `runs_in` | `main` or `worktree`. It must be the checkout the recipe runs in, and the runner must be started there |
 | `item` | The item ID. It must match the directory the card is in |
 | `why` | One sentence for Peter: why this step, now |
@@ -148,7 +149,7 @@ paths:
 | `person` | For a `person` card, who pressed ▶ *Start*: `git config user.name`, or the `gh` login when that's unset. No one's name is built into the runner or the sidebar; a name they show comes from git or `gh` |
 | `message`, `body` | The commit message and PR body files, for the recipes that use them. After an edit to the PR's body on GitHub was caught, `body` also carries `live_sha256`, the hash of the `pr-body-live.md` Claude folded in (§3.2) |
 | `steps` | Every command ▶ will run, verbatim and in order, as a literal block (`steps: \|`), one command to a line. The runner refuses a card whose steps differ from its recipe's (§3.3) |
-| `paths` | The paths to commit, for `commit` and `ship`. `deleted` marks a removal: the runner checks the path is gone from the checkout, and `git add` names it only while the index still has it. After a `git mv` the removal is already staged, so `git add` leaves it out |
+| `paths` | The paths to commit, for `commit` and `ship`; for `issue-close`, the issue dump and the triage file the closes were made from. `deleted` marks a removal: the runner checks the path is gone from the checkout, and `git add` names it only while the index still has it. After a `git mv` the removal is already staged, so `git add` leaves it out |
 | `restamped` | When Peter took his own edits with *Use my edits* (§3.6), UTC. Absent otherwise |
 
 Every file a card names carries the SHA-256 Claude computed when it planted the card. ▶ re-hashes
@@ -185,12 +186,13 @@ checkout, or that it was started outside. Paths in a card are relative to the ch
 
 | Recipe | Runs in | Checks | Steps |
 |---|---|---|---|
-| `worktask-start` | main | the item is Todo on `origin/<default>`; it has no worktree or branch | `worktask start <id>`, which pushes `plan: start <id>` and opens the worktree's window |
+| `worktask-start` | main | the item is Todo on `origin/<default>`, or In Progress there to reopen it; it has no worktree, and no branch locally or on `origin` | `worktask start <id>`, which pushes `plan: start <id>` and opens the worktree's window. A reopen pushes nothing, because the item was started already |
 | `commit` | worktree | on the item's branch; every file matches its hash; nothing outside `paths` is staged; `message` ends with an `Assisted-by:` trailer and names no AI as author | `git add -- <paths>`, `git commit -F <message>` |
 | `rebase` | worktree | on the item's branch; no rebase already in progress; after `git fetch origin`, the branch's tip on `origin` is an ancestor of `HEAD` | `git fetch origin`, `git rebase --autostash origin/<default>`; when the branch is already on `origin`, `git push --force-with-lease=<branch>:<sha>`, `<sha>` being that tip |
 | `ship` | worktree | `commit`'s checks; `body` starts with `Closes:` and carries no attribution; reads the PR's state with `gh pr view`; when the PR is open, its body on GitHub is the one the runner last posted, or the one `live_sha256` names | no PR: commit, `git push -u origin HEAD`, `gh pc`, then `gh pr edit --add-reviewer @copilot`. Open: commit, `git push`, and `gh pb` when the body differs from the one last posted. Merged or closed: refused |
 | `pr-body` | worktree | the PR is open; `body`'s checks; its body on GitHub is the one the runner last posted, or the one `live_sha256` names | `gh pb` |
 | `review` | main | the PR is open; Copilot's review was requested | `gh pr view <n> --json state,reviews`, once a poll, until a review by Copilot is posted or the PR closes; then `gh api --paginate repos/<owner>/<repo>/pulls/<n>/reviews/<review>/comments` for that review's comments; no ▶ (§3.6) |
+| `issue-close` | main | `HEAD` is `origin/<default>`; every item file the triage imports is on it; the dump and the triage match their hashes; `gh issue list --state open` reads which of their issues are still open | one `gh issue close <n> -R <repo> --reason <reason> --comment <comment>` per issue still open, `sleep 3` between them: the lines `ghplan.importer`'s `--close-script` writes for those issues, without its header |
 | `worktask-done` | main | the PR is merged; the worktree is clean | `worktask done <id>`; when that succeeds, moves the item's cards to `.tmp/plan-board/done/` (§3.3) |
 
 - **No `add -A`, and nothing else staged.** `commit` and `ship` stage only the paths the card names,
@@ -206,8 +208,8 @@ checkout, or that it was started outside. Paths in a card are relative to the ch
   so after `gh pc` or `gh pb` the runner reads it back with `gh pr view --json body`. A body that
   isn't the checked one is a `failed` outcome, and the posted body is saved as `pr-body-live.md`.
 - **Resumable steps.** A step that has already happened is skipped, not repeated: `commit` with
-  nothing to commit in its paths, a push when `origin` already has `HEAD`, and `gh pc` when the PR
-  exists. A `ship` that failed at its push can be planted again and runs from the push.
+  nothing to commit in its paths, a push when `origin` already has `HEAD`, `gh pc` when the PR
+  exists, and an issue `issue-close` finds closed already. A `ship` that failed at its push can be planted again and runs from the push.
 - **An edit on GitHub stops `gh pb`.** After `gh pc` or `gh pb`, the runner saves the body it posted
   beside the item's cards, as `pr-body-posted.md`. Before the next `gh pb`, it reads the live body
   with `gh pr view --json body` and compares the two, with line endings normalised first, because
@@ -227,6 +229,11 @@ checkout, or that it was started outside. Paths in a card are relative to the ch
   files, and stops. The branch is as it was.
 - **On the default branch, nothing runs.** Every worktree recipe refuses when `HEAD` is the default
   branch, so a card can't push to `main` (invariant 2).
+- **`issue-close` closes only what an import moved.** The runner makes the close script again from
+  the card's dump and triage with `ghplan.importer`, and the card's `steps` must be its lines for the
+  issues still open. A comment naming an item file is posted only once that file is on the default
+  branch. The first close that fails stops the run, so a rate limit leaves the rest open, and the
+  card planted again closes only those.
 - **Adding a recipe** is a change to the runner, reviewed like code.
 
 <a id="runner"></a>
@@ -501,7 +508,8 @@ be bound to a key and run from the command palette.
 | `worktask-done` refused or failed | The worktree, branch or item isn't finished | The cards stay, with the result, so Claude reads why and plants the card again. They move to `.tmp/plan-board/done/` only after a `done` outcome |
 | Pruning can't delete an older done item | `.tmp/plan-board/done/` holds more than three items | The card's log has the warning, and the outcome stays `done`. The next `worktask-done` tries again |
 | A card's `runs_in` isn't its recipe's checkout, or ▶ runs it elsewhere | A recipe would act on the wrong checkout | Refused before any write, naming both checkouts |
-| ▶ *Start* on an item someone already started | Two starts of one item | `worktask-start` checks the item is Todo on `origin` and has no worktree or branch, and refuses otherwise. The ready list, as last fetched, may still show it until *Refresh* |
+| ▶ *Start* on an item someone already started | Two starts of one item | `worktask-start` checks the item is Todo on `origin`, or In Progress for a reopen, and has no worktree or branch, and refuses otherwise. A reopen's worktree check is what stops a second one. The ready list, as last fetched, may still show it until *Refresh* |
+| An `issue-close` run stops partway, such as on GitHub's secondary rate limit | Some issues are closed, the rest still open | `failed`, naming the issue whose close failed. Claude plants the card again after a pause, and its steps hold only the issues still open |
 | Offline | `gh` and pushes fail | `failed`, with the error. Local-only recipes (`commit`) still run |
 | Copilot can't be requested, such as on GitHub Enterprise Server or with Copilot review off | The PR is open with no review requested | `ship`'s outcome is still `done`; the result records `review_requested: failed` and the log has `gh`'s message. Peter requests a review on GitHub, or goes on without one. No `review` card is planted |
 | A `review` card's poll can't reach GitHub | Copilot's review isn't noticed yet | The log has the error, the row shows *watch paused*, and the next poll tries again |
@@ -553,7 +561,7 @@ board. Two design choices inside the board were also weighed:
 
 | Lens | Answer |
 |---|---|
-| L1 Security | A card names one of seven recipes and lists the exact commands it will run; the runner refuses a card whose commands aren't its recipe's, and checks every field and refuses anything unknown. The sidebar runs the runner in a terminal and binds no network port. Claude is kept off the runner by the `PreToolUse` hook `deny_plan_board.py` and by the runner's own `CLAUDECODE` check (§3.4). No path outside the item's worktree or main checkout is staged |
+| L1 Security | A card names one of eight recipes and lists the exact commands it will run; the runner refuses a card whose commands aren't its recipe's, and checks every field and refuses anything unknown. The sidebar runs the runner in a terminal and binds no network port. Claude is kept off the runner by the `PreToolUse` hook `deny_plan_board.py` and by the runner's own `CLAUDECODE` check (§3.4). No path outside the item's worktree or main checkout is staged |
 | L2 Privacy and data | Cards, with their records and logs, live in the main checkout's `.tmp/plan-board/<id>/`, which is gitignored, and are never committed. After `worktask-done`, they move to `.tmp/plan-board/done/`, which keeps the last three items done and deletes older ones. Logs hold tool versions, paths, and git and `gh` output, which can include branch names and PR URLs, nothing more. Examples here are synthetic |
 | L3 Reliability and failure | §3.7: a recipe failing partway, a changed file, a rejected push, a conflict, a stale card, a double press, VS Code closing mid-run |
 | L4 Performance and limits | Not affected in any way that matters: `plan_board.py list` reads a few small files per item in flight, in each repo's main checkout, refreshed by a file watcher. `gh pr view` is one call per `ship` or `pr-body`, and one a minute per item waiting for Copilot's review, far inside GitHub's rate limit |
@@ -563,7 +571,7 @@ board. Two design choices inside the board were also weighed:
 | L8 Testability | §6: recipes and checks run against temporary repos with a local bare remote and a stub `gh`, without the network |
 | L9 Operations and cost | No paid tokens: Claude runs under Peter's Claude Code subscription, and nothing calls the API. No credential is added: `gh` keeps its own login. The extension installs from a local `.vsix`, like `worktask`'s |
 | L10 Docs impact | ADR 0009; [architecture §10](../architecture.md#invariants), invariant 5; requirement [`D7`](../requirements.md); `CLAUDE.md`'s boundaries on plan-board cards and on agent commits |
-| L11 Invariants | 2 holds: worktree recipes refuse on the default branch, and only `plan-start` writes `plan:` commits. 3 holds: the board makes no tool commit. 5 gains the exception for a push, `gh pc` or `gh pb`, and the Copilot review request that follows `gh pc`, when Peter presses ▶. 6 holds, because the runner lives in `~/.claude/skills/plan-board/`, and gh-plan gains no module that spawns a process |
+| L11 Invariants | 2 holds: worktree recipes refuse on the default branch, and only `plan-start` writes `plan:` commits. 3 holds: the board makes no tool commit. 5 gains the exception for a push, `gh pc` or `gh pb`, the Copilot review request that follows `gh pc`, and an import's `gh issue close`, when Peter presses ▶. 6 holds, because the runner lives in `~/.claude/skills/plan-board/`, and gh-plan gains no module that spawns a process |
 | L12 Offline and concurrency | Several worktrees' cards are listed and run at once, each in its own terminal. Two presses of one card can't both run (the `O_EXCL` lock), and a card with a result never runs again. Offline, recipes that need the remote fail before writing anything remote |
 
 <a id="testing"></a>
@@ -598,7 +606,12 @@ The runner's tests live beside it, `~/.claude/skills/plan-board/scripts/test_pla
 - A card with `restamped` runs, and the result carries it.
 - `start` plants card 01 with `planted_by: person` and the `person` from `git config user.name`,
   or the `gh` login when that's unset, and runs it. It refuses an item that isn't Todo or already
-  has a worktree.
+  has a worktree. A `worktask-start` card for an In Progress item with no worktree or branch runs
+  and pushes nothing; with either one left, it is refused.
+- `issue-close` against a stub `gh` and a fixture dump and triage: it closes only the issues the
+  stub lists as open, pausing between them; a triage item missing from the default branch, a
+  changed dump, and a `steps` line that names a closed issue are each refused before any close; a
+  stub that fails the second close stops the run there.
 - The card parses after every line the runner appends, and a run killed partway leaves a card with
   a `run` block and no `result`, which `run` then refuses.
 - A card whose `runs_in` doesn't match its recipe, and a card run from the other checkout: both
@@ -639,7 +652,7 @@ gh-plan's own suite is unaffected, because nothing in this design adds code to g
 
 | Item | Estimate |
 |---|---|
-| `plan_board.py`: the card format, the lock, the appended run, log and result, `start`, `poll`, keeping the last three items done, and the seven recipes with their checks, the live-body check and tests | 3 |
+| `plan_board.py`: the card format, the lock, the appended run, log and result, `start`, `poll`, keeping the last three items done, and the eight recipes with their checks, the live-body check and tests | 3 |
 | `deny_plan_board.py` and `results.py` hooks, registered in user settings, with tests | 2 |
 | The sidebar: the ready, in-progress and done sections across repos, review in the diff editor, *Use my edits*, ▶ and ▶ *Start* in a named terminal, switching to an item's window, polling a `review` card every 60 s, *Worktree Done* | 3 |
 | The sidebar's status bar, toast and "Send back to Claude" | 2 |
