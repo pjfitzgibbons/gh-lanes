@@ -1,7 +1,7 @@
 ---
 title: "ADR 0010: plan state lives on a gh-plan branch, checked out at .tracker/"
 type: chore
-status: In Progress
+status: Done
 estimate: 2
 priority: P2
 ordinal: 20680
@@ -36,10 +36,10 @@ Decide, in ADR 0010, that a repo's plan state lives on its own `gh-plan` branch 
 - [x] L12 Offline and concurrency: several worktrees sharing one `.tracker/` worktree
 
 ### Done
-- [ ] ADR 0010 is agreed in chat and merged, with its status and the ADRs it amends.
-- [ ] L3: the ADR says what each command does when `.tracker/` isn't checked out.
-- [ ] L6: the ADR says how an existing repo moves its `.tracker/` history onto `gh-plan`.
-- [ ] L7: the ADR gives the commands a fresh clone runs to see its plan.
-- [ ] L10: each amended doc has a follow-up item.
-- [ ] L11: invariants 2, 3 and 5 are restated in the ADR for a `gh-plan` branch.
-- [ ] L12: the ADR says how several item worktrees share the one `.tracker/` worktree.
+- [x] ADR 0010 is agreed in chat and merged, with its status and the ADRs it amends.
+- [x] L3: the ADR says what each command does when `.tracker/` isn't checked out.
+- [x] L6: the ADR says how an existing repo moves its `.tracker/` history onto `gh-plan`.
+- [x] L7: the ADR gives the commands a fresh clone runs to see its plan.
+- [x] L10: each amended doc has a follow-up item.
+- [x] L11: invariants 2, 3 and 5 are restated in the ADR for a `gh-plan` branch.
+- [x] L12: the ADR says how several item worktrees share the one `.tracker/` worktree.
