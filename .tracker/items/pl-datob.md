@@ -1,7 +1,7 @@
 ---
 title: Import gh-plan's completed GitHub issues as archived Done items
 type: feat
-status: Todo
+status: Icebox
 estimate: 3
 priority: P2
 ordinal: 900

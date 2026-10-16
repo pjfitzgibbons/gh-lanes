@@ -1,7 +1,7 @@
 ---
 title: "Acceptance: work from plan next daily"
 type: feat
-status: Todo
+status: Icebox
 estimate: 1
 priority: P2
 ordinal: 12000

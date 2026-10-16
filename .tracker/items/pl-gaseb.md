@@ -1,7 +1,7 @@
 ---
 title: "git.py: repo root and commit helper"
 type: feat
-status: Todo
+status: Icebox
 estimate: 1
 priority: P2
 ordinal: 10600

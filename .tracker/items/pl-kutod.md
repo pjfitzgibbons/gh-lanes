@@ -1,7 +1,7 @@
 ---
 title: "plan board: terminal lane board"
 type: feat
-status: Todo
+status: Icebox
 estimate: 1
 priority: P2
 ordinal: 11300

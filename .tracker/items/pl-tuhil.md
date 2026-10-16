@@ -1,7 +1,7 @@
 ---
 title: Milestone exit criterion on the board
 type: feat
-status: Todo
+status: Icebox
 estimate: 1
 priority: P2
 ordinal: 20600

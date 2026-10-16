@@ -1,7 +1,7 @@
 ---
 title: "Write commands: new, set, ice, schedule"
 type: feat
-status: Todo
+status: Icebox
 estimate: 3
 priority: P2
 ordinal: 11400

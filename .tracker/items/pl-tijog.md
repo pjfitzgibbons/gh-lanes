@@ -1,7 +1,7 @@
 ---
 title: Drag to change status
 type: feat
-status: Todo
+status: Icebox
 estimate: 3
 priority: P2
 ordinal: 30100
