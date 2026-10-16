@@ -3,7 +3,7 @@
 <a id="status"></a>
 ## 1. Status
 
-Proposed.
+Proposed. Amended by [ADR 0011](0011-redmine-is-the-tracker.md): Redmine runs in Docker.
 
 <a id="context"></a>
 ## 2. Context

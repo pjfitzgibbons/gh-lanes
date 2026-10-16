@@ -1,7 +1,7 @@
 ---
 title: "Design 0003: plan-board cards read and commit gh-plan"
 type: chore
-status: Todo
+status: Icebox
 estimate: 2
 priority: P2
 ordinal: 20720

@@ -1,7 +1,7 @@
 ---
 title: "ADRs 0001, 0002 and 0008 point to ADR 0010"
 type: chore
-status: Todo
+status: Icebox
 estimate: 1
 priority: P2
 ordinal: 20690

@@ -44,7 +44,7 @@ traded · `COULD`: nice, and no tool gets credit for it over a MUST.
 |---|---|---|---|
 | **B1** | MUST | **Numeric estimate per item**, Fibonacci 1 / 2 / 3 / 5 / 8 / 13 | |
 | **B2** | MUST | **Estimate visible in list views without opening the item**, in one canonical place | |
-| **B3** | MUST | **A rule that items above 5 points must be split can be enforced, not just documented** | 8 and 13 are refusal codes, not sizes. An 8 sitting in a sprint is a planning error |
+| **B3** | SHOULD | **Items above 5 points are split before they are scheduled**, as a practice, and a reality check lists any scheduled item above 5 | 8 and 13 mean "split this", not a size. Nothing refuses the save: the check makes a lapse visible |
 | **B4** | SHOULD | Points queryable in bulk for roll-ups and totals | |
 
 <a id="scheduling"></a>

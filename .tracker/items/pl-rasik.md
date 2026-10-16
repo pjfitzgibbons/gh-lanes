@@ -1,7 +1,7 @@
 ---
 title: "Architecture, design 0001 and requirements for the gh-plan branch"
 type: chore
-status: Todo
+status: Icebox
 estimate: 3
 priority: P2
 ordinal: 20700

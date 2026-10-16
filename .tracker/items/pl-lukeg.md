@@ -1,7 +1,7 @@
 ---
 title: "Move gh-plan's .tracker/ onto the gh-plan branch"
 type: chore
-status: Todo
+status: Icebox
 estimate: 2
 priority: P2
 ordinal: 20740

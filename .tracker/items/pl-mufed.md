@@ -1,7 +1,7 @@
 ---
 title: "CLAUDE.md: plan state on the gh-plan branch"
 type: chore
-status: Todo
+status: Icebox
 estimate: 1
 priority: P2
 ordinal: 20710

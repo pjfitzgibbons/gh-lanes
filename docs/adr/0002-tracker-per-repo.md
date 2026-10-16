@@ -3,7 +3,7 @@
 <a id="status"></a>
 ## 1. Status
 
-Proposed.
+Superseded by [ADR 0011](0011-redmine-is-the-tracker.md), which moves the tracker into Redmine.
 
 <a id="context"></a>
 ## 2. Context

@@ -17,7 +17,8 @@
 <a id="status"></a>
 ## 1. Status
 
-Proposed. Amends [ADR 0001](0001-git-is-the-database.md), [ADR 0002](0002-tracker-per-repo.md) and
+Paused: [ADR 0011](0011-redmine-is-the-tracker.md) moves the tracker out of the repo, which removes
+the problem this ADR solves. It would have amended [ADR 0001](0001-git-is-the-database.md), [ADR 0002](0002-tracker-per-repo.md) and
 [ADR 0008](0008-file-native-items.md).
 
 <a id="context"></a>
@@ -29,7 +30,8 @@ reaches it in a pull request, beside the code.
 
 Two costs of that show up on every item:
 
-- On gh-plan, `main` requires pull requests to be up to date before they merge, so each
+- On gh-plan, `main` requires pull requests to be up to date before they merge
+  (`required_status_checks.strict`, read from the branch protection API on 2026-10-16), so each
   `plan: start` puts every open pull request one commit behind. Each of them then needs a rebase
   that has nothing to do with its own change, which is why design 0003 has a `rebase` card.
 - Every branch regenerates `ready.yml`. Two branches in flight conflict on it, and whichever merges
@@ -191,8 +193,9 @@ during the move is finished with `plan done` like any other.
   work from the ref and warn.
 - `git clean -ffdx` in the main checkout deletes `.tracker/`, including its uncommitted edits;
   `git clean -fdx` leaves it. Pushed commits come back with the attach command.
-- The `post-checkout` hook also runs when `.tracker/` is attached. The branch `gh-plan` names no
-  item, so it does nothing.
+- The `post-checkout` hook also runs when `.tracker/` is attached: git runs it inside `.tracker/`
+  with `HEAD` on `gh-plan` (Apple Git 2.54, tried on 2026-10-16). The branch `gh-plan` names no
+  item, so the hook does nothing.
 - A plan that spans repos is unchanged: `config.repos` names checkouts by path, and each member's
   `.tracker/` is its own `gh-plan` worktree.
 - Freeze commits its baselines on `gh-plan`, with the reason in the commit message, instead of in a

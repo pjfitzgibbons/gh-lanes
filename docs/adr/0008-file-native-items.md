@@ -11,7 +11,7 @@
 <a id="status"></a>
 ## 1. Status
 
-Proposed. Supersedes [ADR 0003](0003-disjoint-field-ownership.md), and amends
+Superseded by [ADR 0011](0011-redmine-is-the-tracker.md), which moves the tracker into Redmine. It superseded [ADR 0003](0003-disjoint-field-ownership.md), and amended
 [ADR 0002](0002-tracker-per-repo.md) and [ADR 0006](0006-tracked-time.md).
 
 <a id="context"></a>
