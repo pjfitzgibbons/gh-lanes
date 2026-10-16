@@ -1,6 +1,7 @@
 """importer.py: moving open GitHub issues into item files, once (pl-veles)."""
 
 import json
+import re
 import random
 import subprocess
 from pathlib import Path
@@ -149,6 +150,32 @@ def test_apply_writes_the_ids_the_dry_run_showed(repo, capsys):
             assert f"write .tracker/items/{path.name}" in dry
 
 
+def test_a_close_script_made_after_apply_links_the_files_it_wrote(repo, capsys):
+    assert run(repo, "--apply") == 0
+    script = repo / "close.sh"
+    assert run(repo, "--close-script", str(script)) == 0
+    linked = set(re.findall(r"\.tracker/items/(wa-\w+)\.md\)", script.read_text()))
+    written = {p.stem for p in (repo / ".tracker" / "items").glob("wa-*.md")} - {"wa-tunep"}
+    assert linked == written and len(linked) == 4
+
+
+def test_a_second_apply_is_refused(repo, capsys):
+    assert run(repo, "--apply") == 0
+    capsys.readouterr()
+    assert run(repo, "--apply") == 1
+    assert "imported already: there is nothing to write" in capsys.readouterr().err
+    assert len(list((repo / ".tracker" / "items").glob("*.md"))) == 5
+
+
+def test_a_partial_import_is_refused(repo, capsys):
+    assert run(repo, "--apply") == 0
+    p = the_plan(repo)
+    (repo / ".tracker" / "items" / f"{p.items[0].id}.md").unlink()
+    capsys.readouterr()
+    assert run(repo) == 1
+    assert "imported already, but not all: #7 as wa-" in capsys.readouterr().err
+
+
 def test_fields_come_from_the_title_labels_and_planning_block(repo):
     run(repo, "--apply")
     got = items(repo)
@@ -236,6 +263,7 @@ def test_a_close_can_be_completed():
         ("repo: o/r\nimport: [3, 7, 8, 9, 5]\nclose:\n  5: {comment: x}\n", "both imported and closed: #5"),
         ("repo: o/r\nimport: [3, 7, 8, 9, 5, 42]\n", "not among the open issues: #42"),
         ("repo: o/r\nimport: [3, 7]\n", "open but not in the triage: #5, #8, #9"),
+        ("repo: o/r\nimport: [3, 3, 7, 8, 9]\nclose:\n  5: {comment: x}\n", "imported more than once: #3"),
     ],
 )
 def test_the_triage_sorts_every_open_issue_once(repo, capsys, triage, message):
@@ -284,6 +312,8 @@ def test_planning_and_strip_planning():
     assert strip_planning(text) == "Intro.\n\n### After\nKept.\n"
     assert planning("No block.") == {}
     assert strip_planning("No block.") == "No block.\n"
+    # A leading indent is a code block in Markdown, so only blank lines are trimmed.
+    assert strip_planning("\n  \n    example()\n\n") == "    example()\n"
 
 
 @pytest.mark.parametrize(

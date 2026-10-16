@@ -23,9 +23,9 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from ghplan.config import Tracker, discover
-from ghplan.ids import ID, draw_word, item_ids, load_blocklist
+from ghplan.ids import ID, draw_word, item_files, item_ids, load_blocklist
 from ghplan.model import Item
-from ghplan.store import FileFormatError, load_yaml, write_markdown
+from ghplan.store import FileFormatError, load_yaml, read_markdown, write_markdown
 
 DUMP_COMMAND = (
     "gh api graphql --paginate -F owner=OWNER -F name=REPO --jq '.data.repository.issues.nodes[]' "
@@ -38,6 +38,7 @@ LETTER_BANDS = {"A": 10, "U": 30}  # a lettered backlog ID sorts after every pha
 
 _ESTIMATE_PREFIX = re.compile(r"\[(\d+)\]\s*")
 _PLANNING = re.compile(r"^#{2,3} Planning[ \t]*\n.*?(?=^#{1,3} |\Z)", re.M | re.S)
+_LEADING_BLANK_LINES = re.compile(r"\A(?:[ \t]*\n)+")
 _PLANNING_FIELD = re.compile(r"^- ([\w ]+): (.+?)\s*$", re.M)
 _BACKLOG_ID = re.compile(r"(?P<band>\d+|[A-Z])\.(?P<n>\d+)")
 
@@ -89,6 +90,7 @@ class Planned:
 class Plan:
     items: list[Planned]
     closes: dict[int, tuple[Issue, Close]]
+    imported: bool = False  # an earlier --apply wrote the items, so the plan keeps their IDs
 
 
 def read_issues(path: Path) -> list[Issue]:
@@ -118,8 +120,11 @@ def planning(body: str) -> dict[str, str]:
 
 
 def strip_planning(body: str) -> str:
-    """The body without its Planning block, whose values the front matter now holds."""
-    return _PLANNING.sub("", body).strip() + "\n"
+    """The body without its Planning block, whose values the front matter now holds.
+
+    Only blank lines are trimmed from the start: a first line's indent can make it a code block.
+    """
+    return _LEADING_BLANK_LINES.sub("", _PLANNING.sub("", body)).rstrip() + "\n"
 
 
 def ordinal(backlog_id: str | None) -> int | None:
@@ -151,17 +156,26 @@ def _milestone(value: str | None) -> str | None:
 
 
 def plan(issues: list[Issue], triage: Triage, tracker: Tracker, rng: random.Random) -> Plan:
-    """Sort the issues as the triage says and build each imported one's item. Writes nothing."""
+    """Sort the issues as the triage says and build each imported one's item. Writes nothing.
+
+    After `--apply`, the plan keeps the IDs it wrote, so a close script made then links files that
+    exist. A partial import is refused: which half is right is Peter's call.
+    """
     by_number = {i.number: i for i in issues}
     _check_triage(by_number, triage)
 
-    taken = {m["word"] for id in item_ids(tracker.tracker_dir) if (m := ID.fullmatch(id))}
-    blocklist = load_blocklist()
-    ids: dict[int, str] = {}
-    for number in sorted(triage.import_):
-        word = draw_word(rng, taken, blocklist)
-        taken.add(word)
-        ids[number] = f"{tracker.config.prefix}-{word}"
+    ids = _already_imported(by_number, triage.import_, tracker)
+    if ids and len(ids) < len(triage.import_):
+        found = ", ".join(f"#{n} as {id}" for n, id in sorted(ids.items()))
+        raise ImportFailed(f"some issues are imported already, but not all: {found}")
+    drawn = not ids
+    if drawn:
+        taken = {m["word"] for id in item_ids(tracker.tracker_dir) if (m := ID.fullmatch(id))}
+        blocklist = load_blocklist()
+        for number in sorted(triage.import_):
+            word = draw_word(rng, taken, blocklist)
+            taken.add(word)
+            ids[number] = f"{tracker.config.prefix}-{word}"
 
     milestones = {p.stem for p in tracker.milestone_files()}
     titles = {n: split_title(by_number[n].title)[0] for n in ids}
@@ -169,12 +183,26 @@ def plan(issues: list[Issue], triage: Triage, tracker: Tracker, rng: random.Rand
         _item(by_number[n], ids, titles, tracker, milestones) for n in sorted(triage.import_)
     ]
     closes = {n: (by_number[n], c) for n, c in sorted(triage.close.items())}
-    return Plan(items=items, closes=closes)
+    return Plan(items=items, closes=closes, imported=not drawn)
+
+
+def _already_imported(by_number: dict[int, Issue], numbers: list[int], tracker: Tracker) -> dict[int, str]:
+    # No GitHub identity is kept in an item (model.py), so an imported file is known by the title
+    # and body the import wrote. The body is compared before it is rewritten to the item outline.
+    wanted = {(split_title(by_number[n].title)[0], strip_planning(by_number[n].body)): n for n in numbers}
+    found = {}
+    for id, path in item_files(tracker.tracker_dir).items():
+        front, body = read_markdown(path)
+        if (n := wanted.get((front.get("title"), body))) is not None:
+            found[n] = id
+    return found
 
 
 def _check_triage(by_number: dict[int, Issue], triage: Triage) -> None:
     triaged = set(triage.import_) | set(triage.close)
     problems = []
+    if repeated := sorted({n for n in triage.import_ if triage.import_.count(n) > 1}):
+        problems.append(f"imported more than once: {_numbers(repeated)}")
     if both := sorted(set(triage.import_) & set(triage.close)):
         problems.append(f"both imported and closed: {_numbers(both)}")
     if unknown := sorted(triaged - set(by_number)):
@@ -293,6 +321,8 @@ def _sh(text: str) -> str:
 
 def apply(p: Plan, tracker: Tracker) -> list[Path]:
     """Write each item file. Refuses, writing nothing, if any of them exists already."""
+    if p.imported:
+        raise ImportFailed("these issues are imported already: there is nothing to write")
     paths = [tracker.tracker_dir / "items" / f"{planned.id}.md" for planned in p.items]
     if existing := [str(path) for path in paths if path.exists()]:
         raise ImportFailed(f"would overwrite {', '.join(existing)}")
