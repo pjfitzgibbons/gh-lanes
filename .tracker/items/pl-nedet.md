@@ -1,7 +1,7 @@
 ---
 title: "Design 0003 and ADR 0009: the work console"
 type: chore
-status: Todo
+status: In Progress
 estimate: 5
 priority: P2
 ordinal: 20600
@@ -9,6 +9,7 @@ lane: web
 milestone: phase-2
 blocked_by:
   - "pl-veles - Import gh-plan's open GitHub issues into .tracker/items, then close them"
+started: 2026-10-16T01:28:45Z
 ---
 ### Task
 Design a local web console that starts and finishes item worktrees, runs one Claude agent per item, and turns the commands handed over between steps into buttons. Today several worktrees, terminals and Claude sessions are hard to see at once, `worktask`'s editor hand-off is unreliable, and commits, `gh pc` and close scripts are copied into a terminal by hand.
