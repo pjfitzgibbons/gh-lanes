@@ -1,7 +1,7 @@
 ---
 title: "Design 0003 and ADR 0009: the work console in Claude Desktop"
 type: chore
-status: In Progress
+status: Icebox
 estimate: 3
 priority: P2
 ordinal: 20650
