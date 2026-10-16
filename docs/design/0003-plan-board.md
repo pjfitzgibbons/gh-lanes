@@ -93,7 +93,8 @@ A card is a YAML file, `<nn>-<recipe>.yml`, in `.tmp/plan-board/<id>/` of the re
 whichever checkout its recipe runs in (§3.2). `<id>` is the item, and `<nn>` is the next free
 two-digit number in that directory, so an item's cards are one sequence, in the order they were
 planted. Card 01 is always `worktask-start`, which Peter plants by pressing ▶ *Start* on a ready
-item (§3.6). The runner plants a `review` card when `ship` opens a PR (§3.6). Claude plants the
+item (§3.6). Claude plants it instead to reopen an item that is In Progress but whose worktree and
+branch are gone. The runner plants a `review` card when `ship` opens a PR (§3.6). Claude plants the
 rest. Cards outlive the worktree. When `worktask-done` finishes the item, they move to
 `.tmp/plan-board/done/<id>/`, which keeps the last three items done (§3.3). The main checkout is the
 first entry of `git worktree list`, so the worktree's Claude finds it there. `.tmp/` is gitignored
@@ -185,7 +186,7 @@ checkout, or that it was started outside. Paths in a card are relative to the ch
 
 | Recipe | Runs in | Checks | Steps |
 |---|---|---|---|
-| `worktask-start` | main | the item is Todo on `origin/<default>`; it has no worktree or branch | `worktask start <id>`, which pushes `plan: start <id>` and opens the worktree's window |
+| `worktask-start` | main | the item is Todo on `origin/<default>`, or In Progress there to reopen it; it has no worktree, and no branch locally or on `origin` | `worktask start <id>`, which pushes `plan: start <id>` and opens the worktree's window. A reopen pushes nothing, because the item was started already |
 | `commit` | worktree | on the item's branch; every file matches its hash; nothing outside `paths` is staged; `message` ends with an `Assisted-by:` trailer and names no AI as author | `git add -- <paths>`, `git commit -F <message>` |
 | `rebase` | worktree | on the item's branch; no rebase already in progress; after `git fetch origin`, the branch's tip on `origin` is an ancestor of `HEAD` | `git fetch origin`, `git rebase --autostash origin/<default>`; when the branch is already on `origin`, `git push --force-with-lease=<branch>:<sha>`, `<sha>` being that tip |
 | `ship` | worktree | `commit`'s checks; `body` starts with `Closes:` and carries no attribution; reads the PR's state with `gh pr view`; when the PR is open, its body on GitHub is the one the runner last posted, or the one `live_sha256` names | no PR: commit, `git push -u origin HEAD`, `gh pc`, then `gh pr edit --add-reviewer @copilot`. Open: commit, `git push`, and `gh pb` when the body differs from the one last posted. Merged or closed: refused |
@@ -501,7 +502,7 @@ be bound to a key and run from the command palette.
 | `worktask-done` refused or failed | The worktree, branch or item isn't finished | The cards stay, with the result, so Claude reads why and plants the card again. They move to `.tmp/plan-board/done/` only after a `done` outcome |
 | Pruning can't delete an older done item | `.tmp/plan-board/done/` holds more than three items | The card's log has the warning, and the outcome stays `done`. The next `worktask-done` tries again |
 | A card's `runs_in` isn't its recipe's checkout, or ▶ runs it elsewhere | A recipe would act on the wrong checkout | Refused before any write, naming both checkouts |
-| ▶ *Start* on an item someone already started | Two starts of one item | `worktask-start` checks the item is Todo on `origin` and has no worktree or branch, and refuses otherwise. The ready list, as last fetched, may still show it until *Refresh* |
+| ▶ *Start* on an item someone already started | Two starts of one item | `worktask-start` checks the item is Todo on `origin`, or In Progress for a reopen, and has no worktree or branch, and refuses otherwise. A reopen's worktree check is what stops a second one. The ready list, as last fetched, may still show it until *Refresh* |
 | Offline | `gh` and pushes fail | `failed`, with the error. Local-only recipes (`commit`) still run |
 | Copilot can't be requested, such as on GitHub Enterprise Server or with Copilot review off | The PR is open with no review requested | `ship`'s outcome is still `done`; the result records `review_requested: failed` and the log has `gh`'s message. Peter requests a review on GitHub, or goes on without one. No `review` card is planted |
 | A `review` card's poll can't reach GitHub | Copilot's review isn't noticed yet | The log has the error, the row shows *watch paused*, and the next poll tries again |
@@ -598,7 +599,8 @@ The runner's tests live beside it, `~/.claude/skills/plan-board/scripts/test_pla
 - A card with `restamped` runs, and the result carries it.
 - `start` plants card 01 with `planted_by: person` and the `person` from `git config user.name`,
   or the `gh` login when that's unset, and runs it. It refuses an item that isn't Todo or already
-  has a worktree.
+  has a worktree. A `worktask-start` card for an In Progress item with no worktree or branch runs
+  and pushes nothing; with either one left, it is refused.
 - The card parses after every line the runner appends, and a run killed partway leaves a card with
   a `run` block and no `result`, which `run` then refuses.
 - A card whose `runs_in` doesn't match its recipe, and a card run from the other checkout: both
