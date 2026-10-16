@@ -25,7 +25,8 @@
 - [10. Invariants](#invariants)
 
 **Requirements:** [`requirements.md`](requirements.md) · **Decisions:** [`adr/`](adr/) ·
-**Design:** [design 0001](design/0001-phase-1.md), [design 0002](design/0002-tracked-time.md)
+**Design:** [design 0001](design/0001-phase-1.md), [design 0002](design/0002-tracked-time.md),
+[design 0003](design/0003-plan-board.md)
 
 <a id="purpose"></a>
 ## 1. Purpose
@@ -372,7 +373,10 @@ matter as a table above the body, which covers reading.
 4. `started` is written once and never changed or removed. `plan stop` sets the item back to Todo
    and leaves `started` as the record of the false start, and a later start keeps it (§7.1, §7.2).
 5. The tool's only remote write is a `git push` of its own commits. It never writes through
-   GitHub's API (§6.2).
+   GitHub's API (§6.2). Outside the tool, a plan-board card Peter presses may push an item branch, open
+   or update its PR with `gh pc` or `gh pb`, and request Copilot's review of a PR it opens; no
+   agent runs one
+   ([ADR 0009](adr/0009-plan-board.md)).
 6. `gh.py`, `git.py` and the `timekeeping/` adapters are the only modules that spawn a process or
    open a network connection (§6.2).
 7. Estimates are `Literal[1, 2, 3, 5]`. 8 and 13 are refusal codes meaning "split this" and cannot
