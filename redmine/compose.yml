@@ -1,0 +1,30 @@
+# Redmine for the plan (ADR 0011): run from the gh-plan checkout as
+#   docker compose -f redmine/compose.yml up -d
+# redmine/README.md has the rest: setup, stop, upgrade, where the data lives.
+name: gh-plan-redmine
+
+services:
+  redmine:
+    # The tag the lane board was tested on. Upgrade by changing it here (README, Upgrading).
+    image: redmine:7.0.2
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${REDMINE_PORT:-3000}:3000"
+    environment:
+      # Docker Desktop shows the mounted repos as another user's; git refuses those without this.
+      GIT_CONFIG_COUNT: "1"
+      GIT_CONFIG_KEY_0: safe.directory
+      GIT_CONFIG_VALUE_0: "*"
+    volumes:
+      # No REDMINE_DB_* variables, so the image falls back to SQLite at sqlite/redmine.db.
+      - db:/usr/src/redmine/sqlite
+      - files:/usr/src/redmine/files
+      - ./plugins/lane_board:/usr/src/redmine/plugins/lane_board:ro
+      - ./setup.rb:/setup/setup.rb:ro
+      # Each tracked repo's .git, read-only. setup.rb registers each as its project's repository.
+      - ${GH_PLAN_GIT:-${HOME}/programming/gh-plan/.git}:/repos/gh-plan.git:ro
+      - ${TEMPOTAG_GIT:-${HOME}/programming/tempotag/.git}:/repos/tempotag.git:ro
+
+volumes:
+  db:
+  files:

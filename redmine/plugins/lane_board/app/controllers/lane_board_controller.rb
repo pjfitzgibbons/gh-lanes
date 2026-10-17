@@ -7,8 +7,9 @@ class LaneBoardController < ApplicationController
     return if @lane_field.nil?
 
     @points_field = IssueCustomField.find_by(name: 'Points')
-    @statuses = IssueStatus.sorted.to_a
-    issues = Issue.visible.where(project_id: @project.self_and_descendants.ids)
+    # Icebox is visible but unscheduled (F1): no column, and nothing in a lane's points.
+    @statuses = IssueStatus.sorted.where.not(name: 'Icebox').to_a
+    issues = Issue.visible.where(project_id: @project.self_and_descendants.ids, status_id: @statuses.map(&:id))
                   .includes(:status, :project, :custom_values, relations_to: { issue_from: :status }).to_a
     @lanes = issues.group_by { |i| field_value(i, @lane_field).presence || '(no lane)' }.sort.to_h
   end

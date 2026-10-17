@@ -266,7 +266,7 @@ form, and Easy Gantt lists Redmine 6 as its newest.
 | **B1 B2** | ✅ | A list custom field of 1, 2, 3, 5, 8, 13. `4` is refused: "Points is not included in the list" |
 | **C3** | ✅ | Baseline date fields, read-only for the Developer role by workflow. A Developer's change is dropped without an error |
 | **C4** | ✅ | The administrator re-baselines with a note; the journal records who, when, old and new value, and the note |
-| **C5** | ✅ | `refs #1` links the commit; `fixes #3` closes the issue and the issue keeps the commit time. A commit older than the repository's registration never changes a status (`app/models/changeset.rb:153`) |
+| **C5** | ✅ | `refs #1` links the commit; `fixes #3` closes the issue when Redmine fetches the commits, which it does only when someone opens the Repository tab; `closed_on` is the fetch time and the changeset's `committed_on` the commit time. A commit older than the repository's registration never changes a status (`app/models/changeset.rb:153`) |
 | **C7** | ✅ | The core Gantt spans all four projects, with version progress. It draws no baseline |
 | **D1 D4** | ✅ | A single-valued list field; two values are refused: "Lane is invalid" |
 | **D2** | ✅ plugin | A 65-line plugin of ours: lanes as rows, statuses as columns, open points per lane |
