@@ -3,7 +3,9 @@
 A Redmine 7.0 plugin that adds a **Lanes** tab to a project. The tab shows the issues of the
 project and its sub-projects with lanes as rows and statuses as columns. Each lane's row heading
 totals its open points, counting leaf issues only, so a parent never counts its sub-tasks twice.
-An issue is marked **ready** when it is open and every issue that blocks it is closed.
+An issue is marked **ready** when it is open and every issue that blocks it is closed. A status
+named `Icebox` has no column, and its issues add nothing to a lane's total; they stay in the
+issue list.
 
 The plugin only reads. It writes no issue, custom field or relation, and has no database
 migration.
