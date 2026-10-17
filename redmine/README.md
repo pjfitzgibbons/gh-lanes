@@ -8,6 +8,7 @@ command here from the root of the gh-plan checkout.
 |---|---|
 | `compose.yml` | The service: the pinned image, the port, the volumes and the mounts |
 | `setup.rb` | The projects, fields, status, workflow, settings, repositories and versions |
+| `import.rb` | The one-time import of each repo's `.tracker/` items |
 | `plugins/lane_board/` | The lane board plugin, mounted read-only |
 
 ## Starting and stopping
@@ -61,7 +62,8 @@ What it sets up:
 - An `Icebox` status, open, with the transitions of New in each workflow, so it opens no route a
   role lacks. The lane board leaves it out.
 - The issue custom fields `Points` (1, 2, 3, 5, 8, 13), `Lane` (cli, engine, github, infra, model,
-  web), and the dates `Baseline start` and `Baseline finish`.
+  web, core), and the dates `Baseline start` and `Baseline finish`; and for the import, `Old ID`
+  (searchable) and `Ordinal`, a whole number in `ready.yml`'s order.
 - The baselines read-only, by workflow, for every role. A `Baseline editor` role, with no members,
   keeps them editable by the administrator, who holds every role in workflow checks.
 - **View lane board** for every role.
@@ -69,6 +71,35 @@ What it sets up:
 - `refs` as the commit keyword that links an issue, and `fixes` as the one that closes it.
 - Each repo registered as its project's Git repository, at `/repos/<project>.git`.
 - One version per milestone in `plan`, shared with its tree.
+
+`compose.yml` mounts `setup.rb` and `import.rb` as single files. An editor that saves by replacing
+the file leaves the container holding the old one, or none, so recreate the container
+(`up -d --force-recreate`) after editing either.
+
+## Importing the items
+
+`import.rb` imports every item in gh-plan's and tempotag's `.tracker/` once
+([ADR 0011](../docs/adr/0011-redmine-is-the-tracker.md), *Consequences*), keeping each body, with
+the item's ID in the `Old ID` field. It reads gh-plan at `origin/main` and tempotag from its index,
+through the `.git` mounts. tempotag's titles and bodies are in its GitHub issues, and the container
+has no `gh`, so they come in on stdin:
+
+```
+gh issue list -R pjfitzgibbons/tempotag --state all --limit 100 \
+  --json number,title,body,closedAt > .tmp/tempotag-issues.json
+docker compose -f redmine/compose.yml exec -T -u redmine redmine \
+  bin/rails runner /setup/import.rb --dry-run < .tmp/tempotag-issues.json
+```
+
+`--dry-run` makes everything, prints it and rolls it back. Without it the import writes, in one
+transaction, so a failed run leaves nothing. `--check` writes nothing: it compares each item with
+its issue, field by field, prints each difference and exits 1 if there is one. Re-running is safe:
+an issue is found by its Old ID and left as it is, and only a missing issue, parent or relation is
+made.
+
+A Done item's finish is the first commit on `origin/main` whose copy of it reads `status: Done`,
+its squash-merge, or for tempotag the issue's `closedAt`. It becomes the issue's `closed_on` and
+due date. `started` becomes the start date. Both dates are days in America/Los_Angeles.
 
 ## Upgrading
 

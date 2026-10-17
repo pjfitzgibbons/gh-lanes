@@ -1,7 +1,7 @@
 ---
 title: "Import each repo's .tracker/ items into Redmine"
 type: chore
-status: In Progress
+status: Done
 estimate: 3
 priority: P2
 ordinal: 200
@@ -23,21 +23,21 @@ Import, once, every item in gh-plan's and tempotag's `.tracker/items/` and `.tra
 - Bodies go in as they are; nothing is rewritten on the way.
 
 ### Lenses
-- [ ] L1 
-- [ ] L2 Security
-- [x] L3 Privacy and data: a run that stops halfway, then runs again
-- [ ] L4 Reliability and failure
-- [ ] L5 Performance and limits
-- [x] L6 Observability: every field of an item file, and a Done item's start and finish
-- [ ] L7 Compatibility and migration
-- [x] L8 Usability and accessibility: a dry run, then a run against a throwaway container
-- [ ] L9 Testability
-- [ ] L10 Operations and cost
-- [ ] L11 Docs impact
-- [ ] L12 Invariants
+- [ ] L1 Security
+- [ ] L2 Privacy and data
+- [x] L3 Reliability and failure: a run that stops halfway, then runs again
+- [ ] L4 Performance and limits
+- [ ] L5 Observability
+- [x] L6 Compatibility and migration: every field of an item file, and a Done item's start and finish
+- [ ] L7 Usability and accessibility
+- [x] L8 Testability: a dry run, then a run against a throwaway container
+- [ ] L9 Operations and cost
+- [ ] L10 Docs impact
+- [ ] L11 Invariants
+- [ ] L12 Offline and concurrency
 
 ### Done
-- [ ] Redmine holds one issue per item file in both repos, and the counts match `ls .tracker/items .tracker/archive`.
-- [ ] L3: re-running the import creates no duplicate; it finds existing issues by `Old ID`.
-- [ ] L6: a check script compares each item file with its issue, field by field, including parent, blocks, start and finish, and reports no difference.
-- [ ] L8: the dry run writes nothing, shown by the issue count before and after.
+- [x] Redmine holds one issue per item file in both repos, and the counts match `ls .tracker/items .tracker/archive`.
+- [x] L3: re-running the import creates no duplicate; it finds existing issues by `Old ID`.
+- [x] L6: a check script compares each item file with its issue, field by field, including parent, blocks, start and finish, and reports no difference.
+- [x] L8: the dry run writes nothing, shown by the issue count before and after.
