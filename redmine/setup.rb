@@ -106,19 +106,27 @@ ActiveRecord::Base.transaction do
   closed = IssueStatus.find_by!(name: 'Closed')
   setting :commit_update_keywords, [{ 'keywords' => 'fixes', 'status_id' => closed.id.to_s, 'done_ratio' => '' }]
 
-  # Icebox: open, and reachable from and to every status in each workflow that has transitions.
+  # Icebox: open, and in each workflow a copy of New, so it opens no route a role lacks. It gets
+  # New's transitions out, with their author and assignee conditions, each status's transition
+  # into New, and New to Icebox and back wherever New has a transition out.
   icebox = save(IssueStatus.find_or_initialize_by(name: ICEBOX).tap { |s| s.is_closed = false },
                 "status #{ICEBOX}")
+  new = IssueStatus.find_by!(name: 'New')
   made = 0
-  WorkflowTransition.where.not(old_status_id: 0).distinct.pluck(:role_id, :tracker_id).each do |role_id, tracker_id|
-    (IssueStatus.all.to_a - [icebox]).each do |other|
-      [[other, icebox], [icebox, other]].each do |from, to|
-        rule = WorkflowTransition.find_or_create_by!(role_id: role_id, tracker_id: tracker_id,
-                                                     old_status_id: from.id, new_status_id: to.id,
-                                                     author: false, assignee: false)
-        made += 1 if rule.previously_new_record?
-      end
-    end
+  copies = WorkflowTransition.where(old_status_id: new.id).where.not(new_status_id: icebox.id).map do |t|
+    [t, icebox.id, t.new_status_id]
+  end
+  copies += WorkflowTransition.where(new_status_id: new.id).where.not(old_status_id: [0, icebox.id]).map do |t|
+    [t, t.old_status_id, icebox.id]
+  end
+  copies += WorkflowTransition.where(old_status_id: new.id).where.not(new_status_id: icebox.id).flat_map do |t|
+    [[t, new.id, icebox.id], [t, icebox.id, new.id]]
+  end
+  copies.each do |t, from, to|
+    rule = WorkflowTransition.find_or_create_by!(role_id: t.role_id, tracker_id: t.tracker_id,
+                                                 old_status_id: from, new_status_id: to,
+                                                 author: t.author, assignee: t.assignee)
+    made += 1 if rule.previously_new_record?
   end
   note "made #{made} workflow transitions to and from #{ICEBOX}" if made.positive?
 

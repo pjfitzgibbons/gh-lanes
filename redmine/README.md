@@ -58,7 +58,8 @@ What it sets up:
 - A private parent project `plan`, with sub-projects `gh-plan` and `tempotag`, each with the
   lane board, Gantt and repository modules.
 - The default trackers, statuses, roles and workflows, on an empty database.
-- An `Icebox` status, open, with transitions to and from every status. The lane board leaves it out.
+- An `Icebox` status, open, with the transitions of New in each workflow, so it opens no route a
+  role lacks. The lane board leaves it out.
 - The issue custom fields `Points` (1, 2, 3, 5, 8, 13), `Lane` (cli, engine, github, infra, model,
   web), and the dates `Baseline start` and `Baseline finish`.
 - The baselines read-only, by workflow, for every role. A `Baseline editor` role, with no members,
