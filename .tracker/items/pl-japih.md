@@ -1,7 +1,7 @@
 ---
 title: "Import each repo's .tracker/ items into Redmine"
 type: chore
-status: Todo
+status: In Progress
 estimate: 3
 priority: P2
 ordinal: 200
@@ -9,6 +9,7 @@ lane: infra
 milestone: redmine
 blocked_by:
   - "pl-dezoj - Redmine setup: compose file, projects, custom fields and repositories"
+started: 2026-10-17T11:06:09Z
 ---
 ### Task
 Import, once, every item in gh-plan's and tempotag's `.tracker/items/` and `.tracker/archive/` into Redmine, keeping each body ([ADR 0011](../../docs/adr/0011-redmine-is-the-tracker.md), *Consequences*):
