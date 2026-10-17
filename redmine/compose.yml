@@ -9,7 +9,7 @@ services:
     image: redmine:7.0.2
     restart: unless-stopped
     ports:
-      - "127.0.0.1:${REDMINE_PORT:-3000}:3000"
+      - "127.0.0.1:${REDMINE_PORT:-3010}:3000"
     environment:
       # Docker Desktop shows the mounted repos as another user's; git refuses those without this.
       GIT_CONFIG_COUNT: "1"
