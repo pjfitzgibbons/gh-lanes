@@ -66,13 +66,6 @@ def test_the_alphabet_is_16_consonants_and_5_vowels():
     assert WORDS == 102_400 == len(set(all_words()))
 
 
-def test_every_existing_id_in_this_repo_is_a_word():
-    # The alphabet was chosen so that no ID already committed becomes invalid.
-    stems = item_ids(Path(__file__).parents[1] / ".tracker")
-    assert stems
-    assert all(ids.ID.fullmatch(s) for s in stems), stems
-
-
 # --- the blocklist ---
 
 

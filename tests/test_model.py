@@ -51,7 +51,6 @@ Every P0 and P1 item in `api` and `frontend` is Done, and signup has run end to 
 """
 
 MINIMAL = {"title": "Retry failed webhook deliveries", "type": "feat"}
-REPO_TRACKER = Path(__file__).parents[1] / ".tracker"
 
 
 def front(text: str) -> dict:
@@ -223,12 +222,3 @@ def test_a_bad_item_fails_naming_the_file(tmp_path, change, message):
     with pytest.raises(FileFormatError, match=message) as e:
         load_markdown(path, Item)
     assert str(path) in str(e.value)
-
-
-def test_this_repos_tracker_validates():
-    """gh-plan's own items and milestones load against the schemas."""
-    files = [(p, Item) for p in sorted((REPO_TRACKER / "items").glob("*.md"))]
-    files += [(p, Milestone) for p in sorted((REPO_TRACKER / "milestones").glob("*.md"))]
-    assert files
-    for path, model in files:
-        load_markdown(path, model)

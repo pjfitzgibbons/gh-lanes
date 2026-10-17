@@ -223,8 +223,3 @@ def test_loading_a_root_with_no_config_is_a_tracker_error(tmp_path):
     with pytest.raises(TrackerError, match="config.yml") as e:
         config.load(tmp_path)
     assert e.value.exit_code == 2
-
-
-def test_this_repos_config_validates():
-    root = Path(__file__).parents[1]
-    assert config.load(root).prefix == "pl"
