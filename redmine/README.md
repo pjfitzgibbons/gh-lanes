@@ -19,7 +19,7 @@ docker compose -f redmine/compose.yml down      # stop and remove the container;
 docker compose -f redmine/compose.yml logs -f   # follow the log
 ```
 
-Redmine is at <http://127.0.0.1:3000>, bound to localhost only. `REDMINE_PORT` picks another
+Redmine is at <http://127.0.0.1:3010>, bound to localhost only. `REDMINE_PORT` picks another
 port. The first sign-in is `admin` / `admin`, and Redmine makes you change the password at once.
 Nothing in the repo holds the new password or any API key.
 
@@ -88,4 +88,4 @@ container makes a new one.
 Redmine reads a repository's new commits only when someone opens its Repository tab, so a
 `fixes #<n>` commit closes the issue at that fetch, not when it is committed. The issue's
 `closed_on` is the fetch time; the commit's time is the changeset's `committed_on`.
-pl-zuzub fetches on a schedule.
+Opening the tab fetches now. Fetching after each merge is pl-sijil's, in the icebox.
