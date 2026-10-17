@@ -1,7 +1,7 @@
 ---
 title: "Redmine fetches each repository's commits without a browse"
 type: chore
-status: Todo
+status: In Progress
 estimate: 2
 priority: P2
 ordinal: 150
@@ -9,6 +9,7 @@ lane: infra
 milestone: redmine
 blocked_by:
   - "pl-dezoj - Redmine setup: compose file, projects, custom fields and repositories"
+started: 2026-10-17T10:22:37Z
 ---
 ### Task
 Redmine reads a repository's new commits only when someone opens its Repository tab, so `fixes #<n>` waits until then to close the issue, and the issue's `closed_on` is the fetch time, not the commit time (found in pl-dezoj; [survey, *Redmine 7*](../../docs/alternatives-survey.md#redmine-7), `C5`):
