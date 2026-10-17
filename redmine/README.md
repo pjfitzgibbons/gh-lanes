@@ -6,9 +6,11 @@ command here from the root of the gh-plan checkout.
 
 | File | Holds |
 |---|---|
-| `compose.yml` | The service: the pinned image, the port, the volumes and the mounts |
+| `compose.yml` | The service: the built image, the port, the volumes and the mounts |
+| `Dockerfile` | The image: the pinned Redmine with the pinned Opale theme, its assets compiled |
 | `setup.rb` | The projects, fields, status, workflow, settings, repositories and versions |
 | `import.rb` | The one-time import of each repo's `.tracker/` items |
+| `backfill.rb` | The one-time backfill of each imported issue's commits, pull requests and status history |
 | `plugins/lane_board/` | The lane board plugin, mounted read-only |
 
 ## Starting and stopping
@@ -63,7 +65,8 @@ What it sets up:
   role lacks. The lane board leaves it out.
 - The issue custom fields `Points` (1, 2, 3, 5, 8, 13), `Lane` (cli, engine, github, infra, model,
   web, core), and the dates `Baseline start` and `Baseline finish`; and for the import, `Old ID`
-  (searchable) and `Ordinal`, a whole number in `ready.yml`'s order.
+  (searchable) and `Ordinal`, a whole number in `ready.yml`'s order; and `Pull requests`, each
+  merged PR as a Markdown link, which `backfill.rb` fills.
 - The baselines read-only, by workflow, for every role. A `Baseline editor` role, with no members,
   keeps them editable by the administrator, who holds every role in workflow checks.
 - **View lane board** for every role.
@@ -71,10 +74,13 @@ What it sets up:
 - `refs` as the commit keyword that links an issue, and `fixes` as the one that closes it.
 - Each repo registered as its project's Git repository, at `/repos/<project>.git`.
 - One version per milestone in `plan`, shared with its tree.
+- The Opale theme, and the `Pull requests` column in the default issue list.
+- A public query `Next up` in `plan`: open issues, Icebox left out, in Ordinal order.
+- The home page: links to `plan` and to `Next up`.
 
-`compose.yml` mounts `setup.rb` and `import.rb` as single files. An editor that saves by replacing
-the file leaves the container holding the old one, or none, so recreate the container
-(`up -d --force-recreate`) after editing either.
+`compose.yml` mounts `setup.rb`, `import.rb` and `backfill.rb` as single files. An editor that
+saves by replacing the file leaves the container holding the old one, or none, so recreate the
+container (`up -d --force-recreate`) after editing one.
 
 ## Importing the items
 
@@ -101,12 +107,29 @@ A Done item's finish is the first commit on `origin/main` whose copy of it reads
 its squash-merge, or for tempotag the issue's `closedAt`. It becomes the issue's `closed_on` and
 due date. `started` becomes the start date. Both dates are days in America/Los_Angeles.
 
+## Backfilling the history
+
+The import makes no journals. `backfill.rb` adds, once, what git and GitHub hold of each issue's
+past. It links each commit to the issue whose Old ID it names. It adds a note for each merged
+pull request that names the issue, and links them all in its `Pull requests` field. It records a
+status change for each commit that changed the item's status. Every journal is peter's, dated by
+its evidence, with a note naming that evidence. The pull requests and tempotag's issue dates come
+in on stdin; the top of `backfill.rb` has the command that gathers them. `--dry-run` does the
+whole backfill, prints it and rolls it back. Re-running makes nothing: a journal whose note the
+issue already has is skipped.
+
+Redmine's commit keyword scan is off while the backfill fetches the old commits. Their `#<n>`
+numbers GitHub issues, and "Closes #3" would otherwise close Redmine's #3. Commits fetched later
+are scanned as usual.
+
 ## Upgrading
 
 1. Read the Redmine changelog for every release between the two tags.
-2. Change `image:` in `compose.yml` to the new tag. Pin an exact tag such as `7.0.3`, never `7.0`.
+2. Change `FROM` in the `Dockerfile` to the new tag, and `image:` in `compose.yml` to match. Pin an
+   exact tag such as `7.0.3`, never `7.0`. A new Opale release changes the `ADD` line's URL and
+   checksum (`shasum -a 256` of the zip).
 3. Back up the `db` volume.
-4. `docker compose -f redmine/compose.yml up -d`. The image migrates the database on start.
+4. `docker compose -f redmine/compose.yml up -d --build`. The image migrates the database on start.
 5. Check that *Administration › Plugins* still lists the lane board, and its tab still loads.
 6. Re-run the setup, which should print `nothing to change`.
 

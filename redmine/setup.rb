@@ -29,6 +29,9 @@ ICEBOX = 'Icebox'.freeze
 # stay editable by the administrator alone.
 BASELINE_EDITOR = 'Baseline editor'.freeze
 MODULES = %w[issue_tracking repository gantt calendar lane_board].freeze
+# The theme the Dockerfile installs.
+THEME = 'opale'.freeze
+NEXT_UP = 'Next up'.freeze
 
 @changes = []
 
@@ -60,11 +63,12 @@ def all_trackers(field)
   note "gave #{field.name} to #{missing.map(&:name).join(', ')}"
 end
 
-def issue_field(name, format, values = nil, searchable: false)
+def issue_field(name, format, values = nil, searchable: false, formatted: false)
   field = IssueCustomField.find_or_initialize_by(name: name)
   field.field_format = format if field.new_record?
   field.possible_values = values if values
   field.searchable = searchable
+  field.text_formatting = 'full' if formatted
   field.multiple = false
   field.is_for_all = true
   field.is_filter = true
@@ -132,12 +136,14 @@ ActiveRecord::Base.transaction do
   end
   note "made #{made} workflow transitions to and from #{ICEBOX}" if made.positive?
 
-  issue_field('Points', 'list', POINTS)
-  issue_field('Lane', 'list', LANES)
+  points = issue_field('Points', 'list', POINTS)
+  lane = issue_field('Lane', 'list', LANES)
   baselines = BASELINES.map { |name| issue_field(name, 'date') }
   # From the import of each repo's .tracker/ (import.rb): the item's ID, and ready.yml's order.
   issue_field('Old ID', 'string', searchable: true)
-  issue_field('Ordinal', 'int')
+  ordinal = issue_field('Ordinal', 'int')
+  # Each merged pull request as a Markdown link, so they head the issue: a link field holds only one.
+  pull_requests = issue_field('Pull requests', 'string', searchable: true, formatted: true)
 
   editor = Role.find_or_initialize_by(name: BASELINE_EDITOR)
   editor.permissions = %i[view_issues edit_issues] if editor.new_record?
@@ -183,6 +189,28 @@ ActiveRecord::Base.transaction do
     version.sharing = 'tree'
     save(version, "version #{name}")
   end
+
+  setting :ui_theme, THEME
+  setting :issue_list_default_columns, %W[tracker status priority subject assigned_to updated_on cf_#{pull_requests.id}]
+
+  # Open issues in Ordinal order, Icebox left out: what to pick up next. Public, so it belongs to
+  # no one person; its owner is whoever made it, or the first administrator.
+  query = IssueQuery.find_or_initialize_by(project_id: parent.id, name: NEXT_UP)
+  query.user ||= User.active.where(admin: true).order(:id).first
+  query.visibility = Query::VISIBILITY_PUBLIC
+  query.filters = { 'status_id' => { operator: '=', values: IssueStatus.where(is_closed: false)
+                                                                       .where.not(name: ICEBOX).order(:id).map { |s| s.id.to_s } } }
+  query.column_names = [:project, :tracker, :status, :subject, :"cf_#{points.id}", :"cf_#{lane.id}",
+                        :"cf_#{ordinal.id}", :assigned_to, :"cf_#{pull_requests.id}"]
+  query.sort_criteria = [["cf_#{ordinal.id}", 'asc'], %w[id asc]]
+  save(query, "query #{NEXT_UP}")
+
+  setting :welcome_text, <<~MARKDOWN
+    ## Plan
+
+    - [Plan project](/projects/#{parent.identifier}): #{REPOS.keys.join(' and ')}
+    - [#{NEXT_UP}](/projects/#{parent.identifier}/issues?query_id=#{query.id}): open issues, Icebox left out, in Ordinal order
+  MARKDOWN
 end
 
 puts @changes.empty? ? 'nothing to change' : "#{@changes.size} changes"
