@@ -20,7 +20,8 @@ VERSIONS = {
   'Phase 3: write UI' => 'Drag to change status and lane.'
 }.freeze
 POINTS = %w[1 2 3 5 8 13].freeze
-LANES = %w[cli engine github infra model web].freeze
+# tempotag's one lane is core.
+LANES = %w[cli engine github infra model web core].freeze
 BASELINES = ['Baseline start', 'Baseline finish'].freeze
 ICEBOX = 'Icebox'.freeze
 # The administrator takes every role in workflow checks, and a field is read-only only when it is
@@ -59,10 +60,11 @@ def all_trackers(field)
   note "gave #{field.name} to #{missing.map(&:name).join(', ')}"
 end
 
-def issue_field(name, format, values = nil)
+def issue_field(name, format, values = nil, searchable: false)
   field = IssueCustomField.find_or_initialize_by(name: name)
   field.field_format = format if field.new_record?
   field.possible_values = values if values
+  field.searchable = searchable
   field.multiple = false
   field.is_for_all = true
   field.is_filter = true
@@ -133,6 +135,9 @@ ActiveRecord::Base.transaction do
   issue_field('Points', 'list', POINTS)
   issue_field('Lane', 'list', LANES)
   baselines = BASELINES.map { |name| issue_field(name, 'date') }
+  # From the import of each repo's .tracker/ (import.rb): the item's ID, and ready.yml's order.
+  issue_field('Old ID', 'string', searchable: true)
+  issue_field('Ordinal', 'int')
 
   editor = Role.find_or_initialize_by(name: BASELINE_EDITOR)
   editor.permissions = %i[view_issues edit_issues] if editor.new_record?
